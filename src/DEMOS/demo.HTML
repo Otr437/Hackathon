@@ -1,0 +1,2923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>X402 Protocol - Multi-Chain Payment Platform</title>
+  
+  <!-- React 18 from CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- Babel Standalone -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+      background: linear-gradient(135deg, #0F172A 0%, #1a1042 50%, #0F172A 100%);
+      min-height: 100vh;
+    }
+    
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    @keyframes successPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    .animate-spin {
+      animation: spin 1s linear infinite;
+    }
+    
+    .animate-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    .animate-float {
+      animation: float 3s ease-in-out infinite;
+    }
+    
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+    
+    button {
+      font-family: inherit;
+      cursor: pointer;
+    }
+    
+    input, button {
+      outline: none;
+    }
+    
+    .glass {
+      background: rgba(30, 41, 59, 0.5);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .gradient-purple {
+      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
+    }
+    
+    .gradient-blue {
+      background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+    }
+    
+    .gradient-green {
+      background: linear-gradient(135deg, #10B981 0%, #3B82F6 100%);
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+    const API_BASE = 'http://localhost:3402/api/v1';
+
+    // Design System Colors
+    const colors = {
+      brand: {
+        primary: '#8B5CF6',
+        primaryDark: '#7C3AED',
+        primaryLight: '#A78BFA',
+        accent: '#EC4899',
+        accentDark: '#DB2777',
+      },
+      status: {
+        success: '#10B981',
+        successBg: '#064E3B',
+        successLight: '#D1FAE5',
+        warning: '#F59E0B',
+        warningBg: '#78350F',
+        warningLight: '#FEF3C7',
+        error: '#EF4444',
+        errorBg: '#7F1D1D',
+        errorLight: '#FEE2E2',
+        info: '#3B82F6',
+        infoBg: '#1E3A8A',
+        infoLight: '#DBEAFE',
+      },
+      currency: {
+        usdc: '#2775CA',
+        zec: '#ECB244',
+        xmr: '#FF6600',
+        starknet: '#EC796B',
+        polygon: '#8247E5',
+        base: '#0052FF',
+        ethereum: '#627EEA',
+      },
+      neutral: {
+        900: '#0F172A',
+        800: '#1E293B',
+        700: '#334155',
+        600: '#475569',
+        500: '#64748B',
+        400: '#94A3B8',
+        300: '#CBD5E1',
+        200: '#E2E8F0',
+        100: '#F1F5F9',
+      }
+    };
+
+    // Enhanced SVG Icons
+    const ShieldIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      </svg>
+    );
+
+    const CheckCircleIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+    );
+
+    const AlertCircleIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    );
+
+    const LoaderIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={`${className} animate-spin`} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="2" x2="12" y2="6"></line>
+        <line x1="12" y1="18" x2="12" y2="22"></line>
+        <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+        <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+        <line x1="2" y1="12" x2="6" y2="12"></line>
+        <line x1="18" y1="12" x2="22" y2="12"></line>
+        <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+        <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+      </svg>
+    );
+
+    const RefreshIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+      </svg>
+    );
+
+    const CopyIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+    );
+
+    const LockIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+    );
+
+    const LogoutIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+        <polyline points="16 17 21 12 16 7"></polyline>
+        <line x1="21" y1="12" x2="9" y2="12"></line>
+      </svg>
+    );
+
+    const ZapIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+      </svg>
+    );
+
+    const ClockIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </svg>
+    );
+
+    const XIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    );
+
+    const ArrowRightIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+        <polyline points="12 5 19 12 12 19"></polyline>
+      </svg>
+    );
+
+    const SettingsIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M12 1v6m0 6v6m-7-7h6m6 0h6m-4-4 4 4-4 4m4-4-4-4 4-4"></path>
+      </svg>
+    );
+
+    const BarChartIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"></line>
+        <line x1="12" y1="20" x2="12" y2="4"></line>
+        <line x1="6" y1="20" x2="6" y2="14"></line>
+      </svg>
+    );
+
+    const DollarIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="1" x2="12" y2="23"></line>
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+      </svg>
+    );
+
+    const DatabaseIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+      </svg>
+    );
+
+    const FileTextIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="16" y1="13" x2="8" y2="13"></line>
+        <line x1="16" y1="17" x2="8" y2="17"></line>
+        <polyline points="10 9 9 9 8 9"></polyline>
+      </svg>
+    );
+
+    const UsersIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+      </svg>
+    );
+
+    const TerminalIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="4 17 10 11 4 5"></polyline>
+        <line x1="12" y1="19" x2="20" y2="19"></line>
+      </svg>
+    );
+
+    const GlobeIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="2" y1="12" x2="22" y2="12"></line>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+      </svg>
+    );
+
+    const ExternalLinkIcon = ({ size = 24, color = 'currentColor', className = '' }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+        <polyline points="15 3 21 3 21 9"></polyline>
+        <line x1="10" y1="14" x2="21" y2="3"></line>
+      </svg>
+    );
+
+    // Enhanced Helper Components
+    const StatCard = ({ title, value, subtitle, icon: Icon, color = 'purple', trend, onClick }) => {
+      const colorMap = {
+        purple: { bg: 'bg-purple-500/10', text: 'text-purple-400', border: 'border-purple-500/20' },
+        blue: { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/20' },
+        green: { bg: 'bg-green-500/10', text: 'text-green-400', border: 'border-green-500/20' },
+        pink: { bg: 'bg-pink-500/10', text: 'text-pink-400', border: 'border-pink-500/20' },
+        orange: { bg: 'bg-orange-500/10', text: 'text-orange-400', border: 'border-orange-500/20' },
+      };
+      
+      const colors = colorMap[color] || colorMap.purple;
+      
+      return (
+        <div 
+          onClick={onClick}
+          className={`${colors.bg} ${colors.border} border rounded-2xl p-6 transition-all hover:scale-[1.02] hover:shadow-xl ${onClick ? 'cursor-pointer hover:shadow-purple-500/10' : ''}`}
+        >
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <p className="text-sm font-semibold text-gray-400 mb-1">{title}</p>
+              <p className="text-3xl font-bold text-white mb-1">{value}</p>
+              {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
+            </div>
+            {Icon && <Icon className={`w-8 h-8 ${colors.text}`} />}
+          </div>
+          {trend && (
+            <div className="flex items-center gap-1 mt-2">
+              <span className={`text-xs font-medium ${trend.value > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {trend.value > 0 ? '+' : ''}{trend.value}%
+              </span>
+              <span className="text-xs text-gray-500">{trend.label}</span>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const NetworkBadge = ({ network, className = '' }) => {
+      const networks = {
+        base: { color: 'bg-blue-500/20', text: 'text-blue-400', label: 'Base' },
+        polygon: { color: 'bg-purple-500/20', text: 'text-purple-400', label: 'Polygon' },
+        starknet: { color: 'bg-orange-500/20', text: 'text-orange-400', label: 'StarkNet' },
+        shielded: { color: 'bg-yellow-500/20', text: 'text-yellow-400', label: 'Shielded' },
+        transparent: { color: 'bg-gray-500/20', text: 'text-gray-400', label: 'Transparent' },
+        ethereum: { color: 'bg-indigo-500/20', text: 'text-indigo-400', label: 'Ethereum' },
+      };
+      
+      const net = networks[network] || { color: 'bg-gray-500/20', text: 'text-gray-400', label: network };
+      
+      return (
+        <span className={`${net.color} ${net.text} px-3 py-1 rounded-full text-xs font-semibold ${className}`}>
+          {net.label}
+        </span>
+      );
+    };
+
+    const CurrencyBadge = ({ currency, amount, className = '' }) => {
+      const currencies = {
+        usdc: { color: 'bg-blue-500/20', text: 'text-blue-400', symbol: 'USDC' },
+        zec: { color: 'bg-yellow-500/20', text: 'text-yellow-400', symbol: 'ZEC' },
+        xmr: { color: 'bg-orange-500/20', text: 'text-orange-400', symbol: 'XMR' },
+      };
+      
+      const cur = currencies[currency] || { color: 'bg-gray-500/20', text: 'text-gray-400', symbol: currency?.toUpperCase() };
+      
+      return (
+        <div className={`inline-flex items-center gap-2 ${cur.color} ${cur.text} px-3 py-1 rounded-full text-sm font-semibold ${className}`}>
+          <span>{cur.symbol}</span>
+          {amount && <span className="text-white">{parseFloat(amount).toLocaleString()}</span>}
+        </div>
+      );
+    };
+
+    const ProgressBar = ({ percentage, color = 'purple', label, value }) => {
+      const colorMap = {
+        purple: 'bg-gradient-to-r from-purple-500 to-pink-500',
+        blue: 'bg-gradient-to-r from-blue-500 to-cyan-500',
+        green: 'bg-gradient-to-r from-green-500 to-emerald-500',
+        orange: 'bg-gradient-to-r from-orange-500 to-amber-500',
+      };
+      
+      return (
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-400 font-medium">{label}</span>
+            <span className="text-white font-semibold">{value}</span>
+          </div>
+          <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+            <div 
+              className={`h-full rounded-full ${colorMap[color]} transition-all duration-500`}
+              style={{ width: `${percentage}%` }}
+            ></div>
+          </div>
+        </div>
+      );
+    };
+
+    // Main App Component
+    function X402Platform() {
+      const [view, setView] = useState('payment');
+      const [adminToken, setAdminToken] = useState(localStorage.getItem('x402_admin_token'));
+      const [realTimeData, setRealTimeData] = useState(null);
+      const [notifications, setNotifications] = useState([]);
+      const [systemStatus, setSystemStatus] = useState('loading');
+      const [connectionStatus, setConnectionStatus] = useState('connecting');
+
+      useEffect(() => {
+        const token = localStorage.getItem('x402_admin_token');
+        if (token) setAdminToken(token);
+        
+        // Check API connection
+        checkConnection();
+        
+        const interval = setInterval(() => {
+          if (adminToken && view === 'admin') {
+            fetchRealTimeData();
+          }
+          checkConnection();
+        }, 30000);
+        
+        return () => clearInterval(interval);
+      }, [adminToken, view]);
+
+      const checkConnection = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/health`);
+          if (res.ok) {
+            setConnectionStatus('connected');
+            setSystemStatus('operational');
+          } else {
+            setConnectionStatus('disconnected');
+            setSystemStatus('degraded');
+          }
+        } catch (err) {
+          setConnectionStatus('disconnected');
+          setSystemStatus('offline');
+        }
+      };
+
+      const fetchRealTimeData = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/admin/dashboard`, {
+            headers: { 'Authorization': `Bearer ${adminToken}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setRealTimeData(data);
+          }
+        } catch (err) {
+          console.error('Real-time update failed:', err);
+        }
+      };
+
+      const handleLogout = () => {
+        localStorage.removeItem('x402_admin_token');
+        setAdminToken(null);
+        setView('payment');
+        addNotification('Logged out successfully', 'success');
+      };
+
+      const addNotification = (message, type = 'info') => {
+        const id = Date.now();
+        setNotifications(prev => [...prev, { id, message, type }]);
+        setTimeout(() => {
+          setNotifications(prev => prev.filter(n => n.id !== id));
+        }, 5000);
+      };
+
+      const ConnectionIndicator = () => {
+        const statusConfig = {
+          connected: { color: 'bg-green-500', text: 'Connected', pulse: true },
+          connecting: { color: 'bg-yellow-500', text: 'Connecting...', pulse: true },
+          disconnected: { color: 'bg-red-500', text: 'Disconnected', pulse: false },
+        };
+        
+        const config = statusConfig[connectionStatus] || statusConfig.connecting;
+        
+        return (
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${config.color} ${config.pulse ? 'animate-pulse' : ''}`}></div>
+            <span className="text-xs text-gray-400 hidden sm:inline">{config.text}</span>
+          </div>
+        );
+      };
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+          {/* Navigation */}
+          <nav className="glass sticky top-0 z-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between h-16">
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-3">
+                    <div className="gradient-purple w-10 h-10 rounded-xl flex items-center justify-center shadow-lg">
+                      <ShieldIcon className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h1 className="text-white font-bold text-xl">X402 Protocol</h1>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="px-2 py-0.5 bg-green-500/20 text-green-300 text-xs rounded-full font-semibold flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+                          LIVE
+                        </span>
+                        <ConnectionIndicator />
+                        <span className="text-xs text-gray-500">v2.0</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="hidden md:flex items-center gap-1">
+                    <NavButton
+                      active={view === 'payment'}
+                      onClick={() => setView('payment')}
+                      label="Payment Portal"
+                      icon={<ZapIcon className="w-4 h-4" />}
+                    />
+                    {adminToken && (
+                      <NavButton
+                        active={view === 'admin'}
+                        onClick={() => setView('admin')}
+                        label="Admin Dashboard"
+                        icon={<BarChartIcon className="w-4 h-4" />}
+                      />
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  {!adminToken ? (
+                    <button
+                      onClick={() => setView('admin')}
+                      className="gradient-purple px-5 py-2.5 text-white rounded-xl font-semibold text-sm flex items-center gap-2 hover:shadow-lg hover:shadow-purple-500/30 transition-all"
+                    >
+                      <LockIcon className="w-4 h-4" />
+                      <span>Admin Login</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleLogout}
+                      className="bg-red-500 hover:bg-red-600 px-5 py-2.5 text-white rounded-xl font-semibold text-sm flex items-center gap-2 transition-all"
+                    >
+                      <LogoutIcon className="w-4 h-4" />
+                      <span>Logout</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+              
+              {/* Mobile Navigation */}
+              <div className="md:hidden flex items-center gap-2 py-3 border-t border-gray-800/50">
+                <NavButton
+                  active={view === 'payment'}
+                  onClick={() => setView('payment')}
+                  label="Payments"
+                  icon={<ZapIcon className="w-4 h-4" />}
+                  mobile
+                />
+                {adminToken && (
+                  <NavButton
+                    active={view === 'admin'}
+                    onClick={() => setView('admin')}
+                    label="Admin"
+                    icon={<BarChartIcon className="w-4 h-4" />}
+                    mobile
+                  />
+                )}
+              </div>
+            </div>
+          </nav>
+
+          {/* Notifications */}
+          <NotificationContainer notifications={notifications} />
+
+          {/* Main Content */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {view === 'payment' ? (
+              <EnhancedPaymentPortal addNotification={addNotification} />
+            ) : (
+              <EnhancedAdminDashboard 
+                token={adminToken} 
+                setToken={setAdminToken} 
+                realTimeData={realTimeData}
+                addNotification={addNotification}
+                systemStatus={systemStatus}
+                connectionStatus={connectionStatus}
+              />
+            )}
+          </div>
+
+          {/* Footer */}
+          <footer className="glass border-t border-gray-800/50 mt-12">
+            <div className="max-w-7xl mx-auto px-4 py-6">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <ShieldIcon className="w-5 h-5 text-purple-400" />
+                  <span className="text-gray-400 text-sm">© 2024 X402 Protocol. All rights reserved.</span>
+                </div>
+                <div className="flex items-center gap-6">
+                  <span className="text-gray-500 text-sm">
+                    System Status: <span className={`font-semibold ${
+                      systemStatus === 'operational' ? 'text-green-400' :
+                      systemStatus === 'degraded' ? 'text-yellow-400' : 'text-red-400'
+                    }`}>{systemStatus}</span>
+                  </span>
+                  <button 
+                    onClick={checkConnection}
+                    className="text-gray-400 hover:text-white text-sm flex items-center gap-1 transition-colors"
+                  >
+                    <RefreshIcon className="w-4 h-4" />
+                    <span>Refresh</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </footer>
+        </div>
+      );
+    }
+
+    function NavButton({ active, onClick, label, icon, mobile = false }) {
+      return (
+        <button
+          onClick={onClick}
+          className={`
+            flex items-center gap-2 transition-all font-medium text-sm
+            ${mobile ? 'flex-1 justify-center py-2.5 rounded-lg' : 'px-4 py-2 rounded-xl'}
+            ${active 
+              ? 'gradient-purple text-white shadow-lg' 
+              : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }
+          `}
+        >
+          {icon}
+          <span>{label}</span>
+        </button>
+      );
+    }
+
+    function NotificationContainer({ notifications }) {
+      return (
+        <div className="fixed top-20 right-4 z-50 flex flex-col gap-3 max-w-md">
+          {notifications.map(notification => (
+            <EnhancedNotification key={notification.id} {...notification} />
+          ))}
+        </div>
+      );
+    }
+
+    function EnhancedNotification({ message, type }) {
+      const config = {
+        success: { 
+          bg: 'bg-gradient-to-r from-green-900/40 to-emerald-900/40', 
+          border: 'border-green-500/30',
+          icon: <CheckCircleIcon className="w-5 h-5 text-green-400" />
+        },
+        error: { 
+          bg: 'bg-gradient-to-r from-red-900/40 to-rose-900/40', 
+          border: 'border-red-500/30',
+          icon: <AlertCircleIcon className="w-5 h-5 text-red-400" />
+        },
+        warning: { 
+          bg: 'bg-gradient-to-r from-yellow-900/40 to-amber-900/40', 
+          border: 'border-yellow-500/30',
+          icon: <AlertCircleIcon className="w-5 h-5 text-yellow-400" />
+        },
+        info: { 
+          bg: 'bg-gradient-to-r from-blue-900/40 to-cyan-900/40', 
+          border: 'border-blue-500/30',
+          icon: <AlertCircleIcon className="w-5 h-5 text-blue-400" />
+        }
+      };
+
+      const { bg, border, icon } = config[type] || config.info;
+
+      return (
+        <div className={`
+          ${bg} border ${border} rounded-xl p-4 flex items-start gap-3
+          shadow-2xl backdrop-blur-sm animate-slideIn
+        `}>
+          {icon}
+          <p className="text-white text-sm font-medium flex-1">{message}</p>
+        </div>
+      );
+    }
+
+    // Enhanced Payment Portal Component
+    function EnhancedPaymentPortal({ addNotification }) {
+      const [step, setStep] = useState(1);
+      const [amount, setAmount] = useState('');
+      const [currency, setCurrency] = useState('usdc');
+      const [network, setNetwork] = useState('base');
+      const [clientId, setClientId] = useState('');
+      const [paymentRequest, setPaymentRequest] = useState(null);
+      const [rates, setRates] = useState(null);
+      const [txHash, setTxHash] = useState('');
+      const [verifying, setVerifying] = useState(false);
+      const [verificationResult, setVerificationResult] = useState(null);
+      const [error, setError] = useState('');
+      const [loading, setLoading] = useState(false);
+      const [depositAddresses, setDepositAddresses] = useState(null);
+      const [balances, setBalances] = useState(null);
+      const [copied, setCopied] = useState(false);
+      const [autoCheckInterval, setAutoCheckInterval] = useState(null);
+      const [checkAttempts, setCheckAttempts] = useState(0);
+      const [paymentType, setPaymentType] = useState('immediate');
+      const [usePrivacyRoute, setUsePrivacyRoute] = useState(false);
+      const [privacyRouteId, setPrivacyRouteId] = useState(null);
+      const [deferredAuth, setDeferredAuth] = useState(null);
+      const [refreshing, setRefreshing] = useState(false);
+      const [showQR, setShowQR] = useState(false);
+      const [showAdvanced, setShowAdvanced] = useState(false);
+      const [memo, setMemo] = useState('');
+      const [estimatedFees, setEstimatedFees] = useState(null);
+      const [expiryTime, setExpiryTime] = useState(null);
+      const [timeLeft, setTimeLeft] = useState(null);
+
+      const qrCodeRef = useRef(null);
+
+      useEffect(() => {
+        initializeEverything();
+        setupClientId();
+        
+        return () => {
+          if (autoCheckInterval) clearInterval(autoCheckInterval);
+        };
+      }, []);
+
+      useEffect(() => {
+        if (expiryTime) {
+          const interval = setInterval(() => {
+            const now = Date.now();
+            const diff = expiryTime - now;
+            if (diff <= 0) {
+              setTimeLeft('Expired');
+              clearInterval(interval);
+            } else {
+              const minutes = Math.floor(diff / 60000);
+              const seconds = Math.floor((diff % 60000) / 1000);
+              setTimeLeft(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+            }
+          }, 1000);
+          
+          return () => clearInterval(interval);
+        }
+      }, [expiryTime]);
+
+      const setupClientId = () => {
+        const savedClientId = localStorage.getItem('x402_client_id');
+        if (savedClientId) {
+          setClientId(savedClientId);
+        } else {
+          const newId = `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          setClientId(newId);
+          localStorage.setItem('x402_client_id', newId);
+        }
+      };
+
+      const initializeEverything = async () => {
+        try {
+          setLoading(true);
+          const [ratesResponse, addressesResponse, balancesResponse, feesResponse] = await Promise.all([
+            fetch(`${API_BASE}/rates`),
+            fetch(`${API_BASE}/deposit-addresses`),
+            fetch(`${API_BASE}/wallet/balance`),
+            fetch(`${API_BASE}/payments/estimate-fees`)
+          ]);
+
+          const [ratesData, addressesData, balancesData, feesData] = await Promise.all([
+            ratesResponse.json(),
+            addressesResponse.json(),
+            balancesResponse.json(),
+            feesResponse.ok ? feesResponse.json() : null
+          ]);
+
+          setRates(ratesData);
+          setDepositAddresses(addressesData);
+          setBalances(balancesData);
+          setEstimatedFees(feesData);
+          
+          if (ratesData.rates) {
+            addNotification('Exchange rates updated', 'success');
+          }
+        } catch (err) {
+          console.error('Initialization failed:', err);
+          setError('Failed to initialize. Please refresh.');
+          addNotification('Initialization failed', 'error');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const generatePaymentRequest = async () => {
+        setLoading(true);
+        setError('');
+        try {
+          const response = await fetch(`${API_BASE}/payments/generate-request`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              amount: parseFloat(amount),
+              clientId,
+              resource: 'payment-portal',
+              currencies: [currency],
+              allowDeferred: paymentType === 'deferred',
+              usePrivacyRoute,
+              network: currency === 'usdc' ? network : undefined,
+              type: currency === 'zec' ? (network === 'shielded' ? 'shielded' : 'transparent') : undefined,
+              metadata: { memo }
+            })
+          });
+          
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Failed to generate payment request');
+          
+          setPaymentRequest(data);
+          setExpiryTime(Date.now() + 15 * 60 * 1000); // 15 minutes expiry
+          
+          if (paymentType === 'deferred') {
+            await generateDeferredAuth();
+          }
+          
+          setStep(2);
+          addNotification('Payment request generated', 'success');
+        } catch (err) {
+          setError(err.message);
+          addNotification(err.message, 'error');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const generateDeferredAuth = async () => {
+        try {
+          const response = await fetch(`${API_BASE}/payments/deferred/authorize`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              clientId, 
+              amount: parseFloat(amount),
+              currency,
+              network
+            })
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Failed to generate deferred authorization');
+          setDeferredAuth(data);
+        } catch (err) {
+          console.error('Deferred auth error:', err);
+        }
+      };
+
+      const verifyPayment = async () => {
+        setVerifying(true);
+        setError('');
+        setVerificationResult(null);
+        setCheckAttempts(prev => prev + 1);
+
+        try {
+          const response = await fetch(`${API_BASE}/payments/verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              currency: currency.toUpperCase(),
+              proof: txHash,
+              amount: parseFloat(amount),
+              clientId,
+              network: currency === 'usdc' ? network : undefined,
+              type: currency === 'zec' ? (network === 'shielded' ? 'shielded' : 'transparent') : undefined
+            })
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Verification failed');
+          
+          setVerificationResult(data);
+          
+          if (data.verified) {
+            if (autoCheckInterval) {
+              clearInterval(autoCheckInterval);
+              setAutoCheckInterval(null);
+            }
+            
+            if (usePrivacyRoute && (currency === 'usdc' || currency === 'zec')) {
+              await initiatePrivacyRoute(txHash);
+            } else {
+              setStep(3);
+              addNotification('Payment verified successfully!', 'success');
+            }
+          } else {
+            if (checkAttempts < 20 && !autoCheckInterval) {
+              const interval = setInterval(() => {
+                verifyPayment();
+              }, 10000);
+              setAutoCheckInterval(interval);
+            }
+            addNotification('Payment not yet confirmed', 'warning');
+          }
+        } catch (err) {
+          setError(err.message);
+          addNotification(err.message, 'error');
+        } finally {
+          setVerifying(false);
+        }
+      };
+
+      const initiatePrivacyRoute = async (sourceTx) => {
+        try {
+          const response = await fetch(`${API_BASE}/payments/privacy-route`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              clientId,
+              amount: parseFloat(amount),
+              currency: currency.toUpperCase(),
+              sourceChain: network,
+              sourceTxHash: sourceTx,
+              destinationChain: network,
+              destinationAddress: getDepositAddress(),
+              resource: 'payment-portal'
+            })
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Privacy routing failed');
+          setPrivacyRouteId(data.routeId);
+          setStep(3);
+          addNotification('Privacy routing initiated', 'success');
+        } catch (err) {
+          setError(err.message);
+          addNotification(err.message, 'error');
+          setStep(3);
+        }
+      };
+
+      const copyToClipboard = async (text) => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+          addNotification('Copied to clipboard', 'success');
+        } catch (err) {
+          console.error('Copy failed:', err);
+        }
+      };
+
+      const refreshData = async () => {
+        setRefreshing(true);
+        try {
+          await initializeEverything();
+          addNotification('Data refreshed', 'success');
+        } catch (err) {
+          console.error('Refresh failed:', err);
+          addNotification('Refresh failed', 'error');
+        } finally {
+          setRefreshing(false);
+        }
+      };
+
+      const getDepositAddress = () => {
+        if (!depositAddresses) return '';
+        if (currency === 'usdc') {
+          if (network === 'starknet') return depositAddresses.depositAddresses?.usdc?.starknet?.address || '';
+          if (network === 'polygon') return depositAddresses.depositAddresses?.usdc?.polygon?.address || '';
+          return depositAddresses.depositAddresses?.usdc?.base?.address || '';
+        }
+        if (currency === 'zec') {
+          return network === 'shielded' 
+            ? depositAddresses.depositAddresses?.zec?.shielded?.address || ''
+            : depositAddresses.depositAddresses?.zec?.transparent?.address || '';
+        }
+        return depositAddresses.depositAddresses?.xmr?.address || '';
+      };
+
+      const getPaymentAmount = () => {
+        if (!paymentRequest || !rates) return '0';
+        if (currency === 'usdc') return paymentRequest.payment?.amount?.usdc?.toFixed(6) || '0';
+        if (currency === 'zec') return paymentRequest.payment?.amount?.zec?.toFixed(8) || '0';
+        if (currency === 'xmr') return paymentRequest.payment?.amount?.xmr?.toFixed(12) || '0';
+        return '0';
+      };
+
+      const calculateFiatAmount = () => {
+        if (!amount) return '0.00';
+        return parseFloat(amount).toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+      };
+
+      const resetForm = () => {
+        setStep(1);
+        setPaymentRequest(null);
+        setTxHash('');
+        setVerificationResult(null);
+        setAmount('');
+        setError('');
+        setCheckAttempts(0);
+        setPrivacyRouteId(null);
+        setDeferredAuth(null);
+        setMemo('');
+        setShowQR(false);
+        setShowAdvanced(false);
+        setExpiryTime(null);
+        setTimeLeft(null);
+        if (autoCheckInterval) {
+          clearInterval(autoCheckInterval);
+          setAutoCheckInterval(null);
+        }
+      };
+
+      const getEstimatedTime = () => {
+        const times = {
+          usdc: { base: '2-5 minutes', polygon: '3-7 minutes', starknet: '1-3 minutes' },
+          zec: { shielded: '10-20 minutes', transparent: '2-5 minutes' },
+          xmr: { default: '20-30 minutes' }
+        };
+        
+        if (currency === 'usdc') return times.usdc[network] || '2-5 minutes';
+        if (currency === 'zec') return times.zec[network] || '5-15 minutes';
+        return times.xmr.default;
+      };
+
+      return (
+        <div className="max-w-6xl mx-auto">
+          {/* Header Card */}
+          <div className="gradient-purple rounded-2xl p-8 mb-8 shadow-2xl">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Payment Portal</h1>
+                <p className="text-purple-100 text-lg">Multi-chain cryptocurrency payments with privacy routing</p>
+              </div>
+              <button
+                onClick={refreshData}
+                disabled={refreshing || loading}
+                className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-all disabled:opacity-50"
+              >
+                {refreshing ? (
+                  <LoaderIcon className="w-6 h-6 text-white" />
+                ) : (
+                  <RefreshIcon className="w-6 h-6 text-white" />
+                )}
+              </button>
+            </div>
+            
+            {balances && (
+              <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white/5 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-purple-200 text-sm font-medium">USDC Balance</span>
+                    <CurrencyBadge currency="usdc" />
+                  </div>
+                  <div className="text-2xl font-bold text-white">
+                    {balances.depositWallets?.usdc?.reduce((sum, w) => sum + parseFloat(w.balance || 0), 0).toFixed(2)}
+                  </div>
+                  <div className="text-purple-300 text-sm mt-1">Across all networks</div>
+                </div>
+                
+                <div className="bg-white/5 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-purple-200 text-sm font-medium">ZEC Balance</span>
+                    <CurrencyBadge currency="zec" />
+                  </div>
+                  <div className="text-2xl font-bold text-white">
+                    {balances.depositWallets?.zec?.total || '0.000000'}
+                  </div>
+                  <div className="text-purple-300 text-sm mt-1">Shielded & Transparent</div>
+                </div>
+                
+                <div className="bg-white/5 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-purple-200 text-sm font-medium">XMR Balance</span>
+                    <CurrencyBadge currency="xmr" />
+                  </div>
+                  <div className="text-2xl font-bold text-white">
+                    {balances.depositWallets?.xmr?.balance?.toFixed(4) || '0.0000'}
+                  </div>
+                  <div className="text-purple-300 text-sm mt-1">Private by default</div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Progress Steps */}
+          <div className="flex items-center justify-between mb-10 px-4">
+            <StepIndicator number={1} label="Configure" active={step >= 1} completed={step > 1} />
+            <div className={`flex-1 h-1 mx-4 rounded-full ${step > 1 ? 'gradient-purple' : 'bg-gray-800'}`}></div>
+            <StepIndicator number={2} label="Send Payment" active={step >= 2} completed={step > 2} />
+            <div className={`flex-1 h-1 mx-4 rounded-full ${step > 2 ? 'gradient-purple' : 'bg-gray-800'}`}></div>
+            <StepIndicator number={3} label="Confirmed" active={step >= 3} completed={step > 3} />
+          </div>
+
+          {/* Step 1: Configuration */}
+          {step === 1 && (
+            <div className="glass rounded-2xl p-6 md:p-8">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl md:text-3xl font-bold text-white">Configure Payment</h2>
+                <button
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="text-gray-400 hover:text-white text-sm flex items-center gap-2"
+                >
+                  <SettingsIcon className="w-4 h-4" />
+                  <span>{showAdvanced ? 'Hide' : 'Show'} Advanced</span>
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Main Configuration */}
+                <div className="lg:col-span-2 space-y-6">
+                  {/* Amount Input */}
+                  <div className="space-y-2">
+                    <label className="block text-white font-semibold">Amount (USD)</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
+                      <input
+                        type="number"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        placeholder="0.00"
+                        step="0.01"
+                        min="0.01"
+                        className="w-full pl-10 pr-4 py-4 bg-gray-800/50 border-2 border-gray-700 rounded-xl text-white text-lg font-medium placeholder-gray-500 focus:border-purple-500 focus:outline-none transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Payment Type */}
+                  <div className="space-y-3">
+                    <label className="block text-white font-semibold">Payment Type</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <PaymentTypeButton
+                        type="immediate"
+                        icon={<ZapIcon className="w-5 h-5" />}
+                        label="Immediate"
+                        description="Process payment instantly"
+                        selected={paymentType === 'immediate'}
+                        onClick={() => setPaymentType('immediate')}
+                      />
+                      <PaymentTypeButton
+                        type="deferred"
+                        icon={<ClockIcon className="w-5 h-5" />}
+                        label="Deferred"
+                        description="Authorize now, settle later"
+                        selected={paymentType === 'deferred'}
+                        onClick={() => setPaymentType('deferred')}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Currency Selection */}
+                  <div className="space-y-3">
+                    <label className="block text-white font-semibold">Currency</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <CurrencyButton
+                        currency="usdc"
+                        label="USDC"
+                        description="Stablecoin"
+                        selected={currency === 'usdc'}
+                        onClick={() => setCurrency('usdc')}
+                        disabled={false}
+                      />
+                      <CurrencyButton
+                        currency="zec"
+                        label="Zcash"
+                        description="Privacy coin"
+                        selected={currency === 'zec'}
+                        onClick={() => setCurrency('zec')}
+                        disabled={paymentType === 'deferred'}
+                      />
+                      <CurrencyButton
+                        currency="xmr"
+                        label="Monero"
+                        description="Private by default"
+                        selected={currency === 'xmr'}
+                        onClick={() => setCurrency('xmr')}
+                        disabled={paymentType === 'deferred'}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Network Selection */}
+                  {currency === 'usdc' && (
+                    <div className="space-y-3">
+                      <label className="block text-white font-semibold">Network</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <NetworkButton
+                          network="base"
+                          label="Base"
+                          selected={network === 'base'}
+                          onClick={() => setNetwork('base')}
+                        />
+                        <NetworkButton
+                          network="polygon"
+                          label="Polygon"
+                          selected={network === 'polygon'}
+                          onClick={() => setNetwork('polygon')}
+                        />
+                        <NetworkButton
+                          network="starknet"
+                          label="StarkNet"
+                          selected={network === 'starknet'}
+                          onClick={() => setNetwork('starknet')}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ZEC Type Selection */}
+                  {currency === 'zec' && (
+                    <div className="space-y-3">
+                      <label className="block text-white font-semibold">Transaction Type</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <NetworkButton
+                          network="shielded"
+                          label="Shielded (Private)"
+                          selected={network === 'shielded'}
+                          onClick={() => setNetwork('shielded')}
+                        />
+                        <NetworkButton
+                          network="transparent"
+                          label="Transparent"
+                          selected={network === 'transparent'}
+                          onClick={() => setNetwork('transparent')}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Advanced Options */}
+                  {showAdvanced && (
+                    <div className="space-y-4 pt-4 border-t border-gray-800">
+                      <div className="space-y-2">
+                        <label className="block text-white font-semibold">Memo (Optional)</label>
+                        <input
+                          type="text"
+                          value={memo}
+                          onChange={(e) => setMemo(e.target.value)}
+                          placeholder="Payment reference or note"
+                          className="w-full px-4 py-3 bg-gray-800/50 border-2 border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none"
+                        />
+                      </div>
+                      
+                      {paymentType === 'immediate' && (currency === 'usdc' || currency === 'zec') && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              id="privacy-route"
+                              checked={usePrivacyRoute}
+                              onChange={(e) => setUsePrivacyRoute(e.target.checked)}
+                              className="w-5 h-5 rounded border-gray-600 bg-gray-800 text-purple-500 focus:ring-purple-500 focus:ring-offset-gray-900"
+                            />
+                            <label htmlFor="privacy-route" className="flex items-center gap-2 cursor-pointer">
+                              <ShieldIcon className="w-5 h-5 text-purple-400" />
+                              <span className="text-white font-medium">Enable Privacy Routing</span>
+                            </label>
+                          </div>
+                          <p className="text-gray-400 text-sm ml-8">
+                            Route payment through Zcash shielded pool for enhanced privacy
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Payment Summary */}
+                <div className="space-y-6">
+                  <div className="bg-gray-800/30 rounded-2xl p-6 border border-gray-700/50">
+                    <h3 className="text-lg font-bold text-white mb-4">Payment Summary</h3>
+                    
+                    {amount && parseFloat(amount) > 0 ? (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Amount:</span>
+                            <span className="text-white font-bold text-xl">${calculateFiatAmount()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">You send:</span>
+                            <span className="text-white font-bold text-2xl">
+                              {(() => {
+                                const amt = parseFloat(amount);
+                                if (!rates?.rates) return '...';
+                                if (currency === 'usdc') return `${amt.toFixed(6)} USDC`;
+                                if (currency === 'zec') return `${(amt / rates.rates.ZEC).toFixed(8)} ZEC`;
+                                if (currency === 'xmr') return `${(amt / rates.rates.XMR).toFixed(12)} XMR`;
+                                return '...';
+                              })()}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="pt-4 border-t border-gray-700/50 space-y-3">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-400">Network fee:</span>
+                            <span className="text-gray-300">
+                              {estimatedFees?.[currency]?.[network] || '~$0.50 - $2.00'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-400">Estimated time:</span>
+                            <span className="text-gray-300">{getEstimatedTime()}</span>
+                          </div>
+                          {usePrivacyRoute && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-400">Privacy routing:</span>
+                              <span className="text-purple-300">Enabled</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {rates?.rates && (
+                          <div className="pt-4 border-t border-gray-700/50">
+                            <p className="text-gray-400 text-sm mb-2">Exchange Rates:</p>
+                            <div className="space-y-1 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-gray-400">1 ZEC =</span>
+                                <span className="text-gray-300">${rates.rates.ZEC?.toFixed(2) || '...'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-400">1 XMR =</span>
+                                <span className="text-gray-300">${rates.rates.XMR?.toFixed(2) || '...'}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <DollarIcon className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                        <p className="text-gray-500">Enter amount to see payment details</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <button
+                    onClick={generatePaymentRequest}
+                    disabled={!amount || parseFloat(amount) <= 0 || loading}
+                    className="w-full gradient-purple py-4 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3"
+                  >
+                    {loading ? (
+                      <>
+                        <LoaderIcon className="w-5 h-5" />
+                        <span>Processing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Generate Payment Request</span>
+                        <ArrowRightIcon className="w-5 h-5" />
+                      </>
+                    )}
+                  </button>
+                  
+                  {error && (
+                    <div className="bg-red-900/30 border border-red-700/50 rounded-xl p-4">
+                      <div className="flex items-start gap-3">
+                        <AlertCircleIcon className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-red-300 text-sm">{error}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Payment Instructions */}
+          {step === 2 && paymentRequest && depositAddresses && (
+            <div className="space-y-6">
+              {/* Payment Details Card */}
+              <div className="glass rounded-2xl p-6 md:p-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                  <div>
+                    <h2 className="text-2xl md:text-3xl font-bold text-white">Send Payment</h2>
+                    <p className="text-gray-400 mt-1">Complete your payment using the details below</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {timeLeft && (
+                      <div className="bg-purple-900/30 border border-purple-700/50 rounded-lg px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <ClockIcon className="w-4 h-4 text-purple-400" />
+                          <span className="text-white font-medium">{timeLeft}</span>
+                        </div>
+                        <p className="text-purple-300 text-xs mt-1">Time remaining</p>
+                      </div>
+                    )}
+                    <button
+                      onClick={resetForm}
+                      className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg font-medium transition-colors flex items-center gap-2"
+                    >
+                      <XIcon className="w-4 h-4" />
+                      <span>Cancel</span>
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Payment Amount */}
+                  <div className="space-y-6">
+                    <div className="bg-gradient-to-br from-purple-900/40 to-pink-900/40 rounded-2xl p-8 border border-purple-500/30">
+                      <div className="text-center">
+                        <p className="text-purple-300 font-medium mb-3">Send exactly</p>
+                        <div className="text-5xl md:text-6xl font-bold text-white mb-2">
+                          {getPaymentAmount()}
+                        </div>
+                        <p className="text-2xl text-purple-300 font-bold">{currency.toUpperCase()}</p>
+                        <p className="text-purple-200 text-lg mt-4">≈ ${amount} USD</p>
+                      </div>
+                    </div>
+                    
+                    {/* Payment Info */}
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-gray-400 font-medium mb-2">Payment ID</label>
+                        <div className="bg-gray-900/50 rounded-xl p-4">
+                          <code className="text-gray-300 font-mono text-sm break-all">{paymentRequest.paymentId}</code>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-gray-400 font-medium mb-2">Client ID</label>
+                        <div className="bg-gray-900/50 rounded-xl p-3">
+                          <code className="text-gray-300 font-mono text-sm">{clientId}</code>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Deposit Address */}
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-white font-semibold mb-3">Deposit Address</label>
+                      <div className="flex gap-2">
+                        <div className="flex-1 relative">
+                          <input
+                            type="text"
+                            value={getDepositAddress()}
+                            readOnly
+                            className="w-full px-4 py-3 bg-gray-800/50 border-2 border-gray-700 rounded-xl text-white font-mono text-sm placeholder-gray-500 focus:border-purple-500 focus:outline-none"
+                          />
+                          <button
+                            onClick={() => copyToClipboard(getDepositAddress())}
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                          >
+                            {copied ? (
+                              <CheckCircleIcon className="w-5 h-5 text-green-400" />
+                            ) : (
+                              <CopyIcon className="w-5 h-5 text-gray-400" />
+                            )}
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => setShowQR(!showQR)}
+                          className="px-4 py-3 bg-gray-800 hover:bg-gray-700 rounded-xl font-medium text-gray-300 transition-colors"
+                        >
+                          {showQR ? 'Hide QR' : 'Show QR'}
+                        </button>
+                      </div>
+                      <p className="text-gray-500 text-sm mt-2">
+                        Send the exact amount to this address. Any difference will cause payment failure.
+                      </p>
+                    </div>
+                    
+                    {showQR && (
+                      <div className="bg-white p-4 rounded-xl inline-block">
+                        <div className="w-48 h-48 bg-gray-900 flex items-center justify-center rounded-lg">
+                          <div className="text-center">
+                            <div className="text-gray-500 text-sm mb-2">QR Code Placeholder</div>
+                            <div className="text-xs text-gray-600">QR generation requires additional library</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Deferred Auth */}
+                    {deferredAuth && (
+                      <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-xl p-5">
+                        <div className="flex items-start gap-3 mb-4">
+                          <ClockIcon className="w-6 h-6 text-yellow-400 flex-shrink-0" />
+                          <div>
+                            <h4 className="text-yellow-300 font-bold mb-1">Deferred Payment Authorization</h4>
+                            <p className="text-yellow-200 text-sm">
+                              Use this authorization code for deferred settlement
+                            </p>
+                          </div>
+                        </div>
+                        <div className="bg-black/30 rounded-lg p-4">
+                          <code className="text-yellow-100 text-xs break-all font-mono">{deferredAuth.authorization}</code>
+                        </div>
+                        <button
+                          onClick={() => copyToClipboard(deferredAuth.authorization)}
+                          className="mt-3 text-yellow-300 hover:text-yellow-200 text-sm flex items-center gap-1"
+                        >
+                          <CopyIcon className="w-4 h-4" />
+                          Copy authorization code
+                        </button>
+                      </div>
+                    )}
+                    
+                    {/* Privacy Routing Notice */}
+                    {usePrivacyRoute && (
+                      <div className="bg-purple-900/20 border border-purple-700/30 rounded-xl p-5">
+                        <div className="flex items-start gap-3">
+                          <ShieldIcon className="w-6 h-6 text-purple-400 flex-shrink-0" />
+                          <div>
+                            <h4 className="text-purple-300 font-bold mb-1">Privacy Routing Enabled</h4>
+                            <p className="text-purple-200 text-sm">
+                              Your payment will be routed through Zcash's shielded pool for enhanced privacy after verification
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Verification Card */}
+              <div className="glass rounded-2xl p-6 md:p-8">
+                <h3 className="text-2xl font-bold text-white mb-6">Verify Transaction</h3>
+                
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-white font-semibold mb-3">
+                      Transaction Hash / Payment ID
+                    </label>
+                    <input
+                      type="text"
+                      value={txHash}
+                      onChange={(e) => setTxHash(e.target.value)}
+                      placeholder="Enter transaction hash or payment ID from your wallet"
+                      className="w-full px-4 py-3 bg-gray-800/50 border-2 border-gray-700 rounded-xl text-white font-mono placeholder-gray-500 focus:border-purple-500 focus:outline-none"
+                    />
+                    <p className="text-gray-500 text-sm mt-2">
+                      After sending payment, paste the transaction ID here to verify
+                    </p>
+                  </div>
+                  
+                  {error && (
+                    <div className="bg-red-900/30 border border-red-700/50 rounded-xl p-4">
+                      <div className="flex items-start gap-3">
+                        <AlertCircleIcon className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-red-300">{error}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button
+                      onClick={verifyPayment}
+                      disabled={!txHash || verifying}
+                      className="gradient-purple py-4 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3"
+                    >
+                      {verifying ? (
+                        <>
+                          <LoaderIcon className="w-5 h-5" />
+                          <span>Verifying...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircleIcon className="w-5 h-5" />
+                          <span>Verify Payment</span>
+                        </>
+                      )}
+                    </button>
+                    
+                    <button
+                      onClick={() => window.open(`https://explorer.example.com/${currency}/${txHash}`, '_blank')}
+                      disabled={!txHash}
+                      className="py-4 bg-gray-800 hover:bg-gray-700 text-white font-bold text-lg rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                    >
+                      <ExternalLinkIcon className="w-5 h-5" />
+                      <span>View on Explorer</span>
+                    </button>
+                  </div>
+                  
+                  {verifying && (
+                    <div className="bg-blue-900/20 border border-blue-700/30 rounded-xl p-5">
+                      <div className="flex items-center gap-3">
+                        <LoaderIcon className="w-6 h-6 text-blue-400" />
+                        <div>
+                          <p className="text-white font-medium">Verifying payment...</p>
+                          <p className="text-blue-300 text-sm mt-1">
+                            Attempt {checkAttempts} • Auto-checking every 10 seconds
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <ProgressBar 
+                          percentage={Math.min(checkAttempts * 5, 100)} 
+                          color="blue"
+                          label="Verification progress"
+                          value={`${checkAttempts}/20 attempts`}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Success */}
+          {step === 3 && verificationResult && (
+            <div className="glass rounded-2xl p-8">
+              <div className="text-center mb-10">
+                <div className="w-32 h-32 gradient-green rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl animate-float">
+                  <CheckCircleIcon className="w-16 h-16 text-white" />
+                </div>
+                <h2 className="text-4xl font-bold text-white mb-3">Payment Verified!</h2>
+                <p className="text-xl text-gray-300">Your payment has been confirmed on-chain</p>
+              </div>
+              
+              {/* Success Details */}
+              <div className="bg-gradient-to-br from-green-900/30 to-emerald-900/30 rounded-2xl p-8 border border-green-700/30 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <DetailItem label="Amount Paid" value={`$${amount}`} />
+                    <DetailItem label="Currency" value={verificationResult.currency} />
+                    <DetailItem label="Payment Type" value={paymentType} />
+                    <DetailItem label="Network" value={network} />
+                  </div>
+                  <div className="space-y-4">
+                    <DetailItem label="Payment ID" value={verificationResult.paymentId} code />
+                    <DetailItem label="Transaction Hash" value={verificationResult.txHash} code />
+                    <DetailItem label="Confirmed At" value={new Date().toLocaleString()} />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Privacy Routing Status */}
+              {privacyRouteId && (
+                <div className="bg-gradient-to-br from-purple-900/30 to-pink-900/30 rounded-2xl p-6 border border-purple-700/30 mb-8">
+                  <div className="flex items-start gap-4">
+                    <ShieldIcon className="w-8 h-8 text-purple-400 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-white mb-2">Privacy Routing Initiated</h3>
+                      <p className="text-purple-200 mb-4">
+                        Your payment is being routed through Zcash's shielded pool for enhanced privacy.
+                        The process typically takes 10-30 minutes to complete.
+                      </p>
+                      <div className="bg-black/30 rounded-lg p-4">
+                        <div className="text-purple-300 text-sm mb-2">Privacy Route ID:</div>
+                        <code className="text-white font-mono text-sm break-all">{privacyRouteId}</code>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Actions */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  onClick={resetForm}
+                  className="gradient-purple py-4 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl transition-all"
+                >
+                  Make Another Payment
+                </button>
+                <button
+                  onClick={() => window.open('https://docs.x402protocol.com', '_blank')}
+                  className="py-4 bg-gray-800 hover:bg-gray-700 text-white font-bold text-lg rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                  <FileTextIcon className="w-5 h-5" />
+                  <span>View Documentation</span>
+                </button>
+              </div>
+              
+              {/* Receipt Notice */}
+              <div className="mt-8 pt-8 border-t border-gray-800 text-center">
+                <p className="text-gray-400 text-sm">
+                  A receipt has been generated and stored securely. You can access it anytime from your payment history.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Enhanced Admin Dashboard Component
+    function EnhancedAdminDashboard({ token, setToken, realTimeData, addNotification, systemStatus, connectionStatus }) {
+      const [activeTab, setActiveTab] = useState('overview');
+      const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+      const [setupForm, setSetupForm] = useState({ username: '', password: '', confirmPassword: '' });
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState('');
+      const [needsSetup, setNeedsSetup] = useState(false);
+      const [dashboardData, setDashboardData] = useState(null);
+      const [payments, setPayments] = useState([]);
+      const [deferredPayments, setDeferredPayments] = useState([]);
+      const [privacyRoutes, setPrivacyRoutes] = useState([]);
+      const [config, setConfig] = useState(null);
+      const [users, setUsers] = useState([]);
+      const [systemLogs, setSystemLogs] = useState([]);
+      const [stats, setStats] = useState({
+        today: { payments: 0, volume: 0, users: 0 },
+        weekly: { payments: 0, volume: 0, growth: 0 }
+      });
+      const [walletStatus, setWalletStatus] = useState({});
+
+      useEffect(() => {
+        if (token) {
+          loadDashboardData();
+          loadStats();
+          checkWalletStatus();
+        }
+      }, [token, activeTab]);
+
+      const loadDashboardData = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/admin/dashboard`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setDashboardData(data);
+          }
+        } catch (err) {
+          console.error('Dashboard load error:', err);
+        }
+      };
+
+      const loadStats = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/admin/stats`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setStats(data);
+          }
+        } catch (err) {
+          console.error('Stats load error:', err);
+        }
+      };
+
+      const checkWalletStatus = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/admin/wallet-status`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setWalletStatus(data);
+          }
+        } catch (err) {
+          console.error('Wallet status error:', err);
+        }
+      };
+
+      const loadPayments = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/admin/payments`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setPayments(data.payments || []);
+          }
+        } catch (err) {
+          console.error('Payments load error:', err);
+        }
+      };
+
+      const loadDeferred = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/admin/deferred-payments`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setDeferredPayments(data.deferredPayments || []);
+          }
+        } catch (err) {
+          console.error('Deferred load error:', err);
+        }
+      };
+
+      const loadPrivacy = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/admin/privacy-routes`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setPrivacyRoutes(data.privacyRoutes || []);
+          }
+        } catch (err) {
+          console.error('Privacy routes load error:', err);
+        }
+      };
+
+      const loadConfig = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/admin/config`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setConfig(data);
+          }
+        } catch (err) {
+          console.error('Config load error:', err);
+        }
+      };
+
+      const loadUsers = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/admin/users`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setUsers(data.users || []);
+          }
+        } catch (err) {
+          console.error('Users load error:', err);
+        }
+      };
+
+      const loadLogs = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/admin/logs`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setSystemLogs(data.logs || []);
+          }
+        } catch (err) {
+          console.error('Logs load error:', err);
+        }
+      };
+
+      const handleLogin = async () => {
+        setLoading(true);
+        setError('');
+        try {
+          const res = await fetch(`${API_BASE}/admin/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(loginForm)
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            if (res.status === 403 && data.error === 'Setup required') {
+              setNeedsSetup(true);
+              return;
+            }
+            throw new Error(data.error || 'Login failed');
+          }
+          localStorage.setItem('x402_admin_token', data.token);
+          setToken(data.token);
+          addNotification('Logged in successfully', 'success');
+        } catch (err) {
+          setError(err.message);
+          addNotification(err.message, 'error');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const handleSetup = async () => {
+        if (setupForm.password !== setupForm.confirmPassword) {
+          setError('Passwords do not match');
+          return;
+        }
+        if (setupForm.password.length < 8) {
+          setError('Password must be at least 8 characters');
+          return;
+        }
+        
+        setLoading(true);
+        setError('');
+        try {
+          const res = await fetch(`${API_BASE}/admin/auth/setup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username: setupForm.username,
+              password: setupForm.password
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Setup failed');
+          localStorage.setItem('x402_admin_token', data.token);
+          setToken(data.token);
+          setNeedsSetup(false);
+          addNotification('Admin account created successfully', 'success');
+        } catch (err) {
+          setError(err.message);
+          addNotification(err.message, 'error');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const handleLogout = () => {
+        localStorage.removeItem('x402_admin_token');
+        setToken(null);
+        addNotification('Logged out successfully', 'info');
+      };
+
+      const performAction = async (action, endpoint, method = 'POST') => {
+        try {
+          const res = await fetch(`${API_BASE}/admin/${endpoint}`, {
+            method,
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            addNotification(`${action} successful`, 'success');
+            if (activeTab === 'overview') loadDashboardData();
+          }
+        } catch (err) {
+          addNotification(`${action} failed: ${err.message}`, 'error');
+        }
+      };
+
+      if (!token) {
+        if (needsSetup) {
+          return (
+            <div className="max-w-md mx-auto">
+              <div className="glass rounded-2xl p-8">
+                <div className="text-center mb-8">
+                  <SettingsIcon className="w-16 h-16 text-purple-400 mx-auto mb-4" />
+                  <h2 className="text-3xl font-bold text-white mb-2">Initial Setup</h2>
+                  <p className="text-gray-400">Create your admin account</p>
+                </div>
+                
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-white font-medium mb-2">Username</label>
+                    <input
+                      type="text"
+                      value={setupForm.username}
+                      onChange={e => setSetupForm({...setupForm, username: e.target.value})}
+                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:border-purple-500 focus:outline-none"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-white font-medium mb-2">Password</label>
+                    <input
+                      type="password"
+                      value={setupForm.password}
+                      onChange={e => setSetupForm({...setupForm, password: e.target.value})}
+                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:border-purple-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-white font-medium mb-2">Confirm Password</label>
+                    <input
+                      type="password"
+                      value={setupForm.confirmPassword}
+                      onChange={e => setSetupForm({...setupForm, confirmPassword: e.target.value})}
+                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:border-purple-500 focus:outline-none"
+                    />
+                  </div>
+
+                  {error && (
+                    <div className="bg-red-900/30 border border-red-700/50 rounded-lg p-4">
+                      <p className="text-red-300 text-sm">{error}</p>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleSetup}
+                    disabled={loading}
+                    className="w-full gradient-purple py-4 text-white font-bold rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? 'Setting up...' : 'Complete Setup'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div className="max-w-md mx-auto">
+            <div className="glass rounded-2xl p-8">
+              <div className="text-center mb-8">
+                <LockIcon className="w-16 h-16 text-purple-400 mx-auto mb-4" />
+                <h2 className="text-3xl font-bold text-white mb-2">Admin Login</h2>
+                <p className="text-gray-400">Access the admin dashboard</p>
+              </div>
+              
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-white font-medium mb-2">Username</label>
+                  <input
+                    type="text"
+                    value={loginForm.username}
+                    onChange={e => setLoginForm({...loginForm, username: e.target.value})}
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:border-purple-500 focus:outline-none"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-white font-medium mb-2">Password</label>
+                  <input
+                    type="password"
+                    value={loginForm.password}
+                    onChange={e => setLoginForm({...loginForm, password: e.target.value})}
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:border-purple-500 focus:outline-none"
+                  />
+                </div>
+
+                {error && (
+                  <div className="bg-red-900/30 border border-red-700/50 rounded-lg p-4">
+                    <p className="text-red-300 text-sm">{error}</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleLogin}
+                  disabled={loading}
+                  className="w-full gradient-purple py-4 text-white font-bold rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? 'Logging in...' : 'Login'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // Dashboard content when logged in
+      return (
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-3xl font-bold text-white">Admin Dashboard</h2>
+              <p className="text-gray-400">Monitor and manage your X402 Protocol instance</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${
+                  systemStatus === 'operational' ? 'bg-green-500 animate-pulse' :
+                  systemStatus === 'degraded' ? 'bg-yellow-500' : 'bg-red-500'
+                }`}></div>
+                <span className="text-gray-400 text-sm">System: {systemStatus}</span>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                <LogoutIcon className="w-4 h-4" />
+                <span>Logout</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: 'overview', label: 'Overview', icon: BarChartIcon },
+              { id: 'payments', label: 'Payments', icon: DollarIcon },
+              { id: 'privacy', label: 'Privacy Routes', icon: ShieldIcon },
+              { id: 'deferred', label: 'Deferred', icon: ClockIcon },
+              { id: 'wallets', label: 'Wallets', icon: DatabaseIcon },
+              { id: 'users', label: 'Users', icon: UsersIcon },
+              { id: 'config', label: 'Configuration', icon: SettingsIcon },
+              { id: 'logs', label: 'System Logs', icon: TerminalIcon },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  // Load data for the tab
+                  if (tab.id === 'payments') loadPayments();
+                  if (tab.id === 'deferred') loadDeferred();
+                  if (tab.id === 'privacy') loadPrivacy();
+                  if (tab.id === 'config') loadConfig();
+                  if (tab.id === 'users') loadUsers();
+                  if (tab.id === 'logs') loadLogs();
+                }}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${
+                  activeTab === tab.id
+                    ? 'gradient-purple text-white shadow-lg'
+                    : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800 hover:text-white'
+                }`}
+              >
+                <tab.icon className="w-5 h-5" />
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Tab Content */}
+          <div className="glass rounded-2xl p-6">
+            {activeTab === 'overview' && (
+              <OverviewTab 
+                data={dashboardData}
+                stats={stats}
+                walletStatus={walletStatus}
+                systemStatus={systemStatus}
+                connectionStatus={connectionStatus}
+              />
+            )}
+            
+            {activeTab === 'payments' && (
+              <PaymentsTab payments={payments} />
+            )}
+            
+            {activeTab === 'privacy' && (
+              <PrivacyTab routes={privacyRoutes} />
+            )}
+            
+            {activeTab === 'deferred' && (
+              <DeferredTab payments={deferredPayments} />
+            )}
+            
+            {activeTab === 'wallets' && (
+              <WalletsTab data={dashboardData} walletStatus={walletStatus} />
+            )}
+            
+            {activeTab === 'config' && (
+              <ConfigTab config={config} />
+            )}
+            
+            {activeTab === 'users' && (
+              <UsersTab users={users} />
+            )}
+            
+            {activeTab === 'logs' && (
+              <LogsTab logs={systemLogs} />
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Tab Components
+    function OverviewTab({ data, stats, walletStatus, systemStatus, connectionStatus }) {
+      return (
+        <div className="space-y-8">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard 
+              title="Total Payments" 
+              value={data?.overview?.totalPayments || 0}
+              subtitle="All time"
+              icon={DollarIcon}
+              color="purple"
+            />
+            <StatCard 
+              title="Total Volume" 
+              value={`$${(data?.overview?.totalVolume || 0).toLocaleString()}`}
+              subtitle="USD equivalent"
+              icon={BarChartIcon}
+              color="green"
+            />
+            <StatCard 
+              title="Active Users" 
+              value={stats.today?.users || 0}
+              subtitle="Today"
+              icon={UsersIcon}
+              color="blue"
+            />
+            <StatCard 
+              title="Privacy Routes" 
+              value={data?.overview?.privacyRoutedPayments || 0}
+              subtitle="Completed"
+              icon={ShieldIcon}
+              color="pink"
+            />
+          </div>
+
+          {/* System Status */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="bg-gray-800/30 rounded-xl p-6">
+              <h3 className="text-lg font-bold text-white mb-4">System Health</h3>
+              <div className="space-y-4">
+                <StatusIndicator 
+                  label="API Server" 
+                  status={connectionStatus === 'connected' ? 'healthy' : 'unhealthy'}
+                  details={`${connectionStatus}`}
+                />
+                <StatusIndicator 
+                  label="Database" 
+                  status="healthy"
+                  details="Connected"
+                />
+                <StatusIndicator 
+                  label="Rate Service" 
+                  status="healthy"
+                  details="Updated 2 min ago"
+                />
+              </div>
+            </div>
+
+            <div className="bg-gray-800/30 rounded-xl p-6">
+              <h3 className="text-lg font-bold text-white mb-4">Wallet Status</h3>
+              <div className="space-y-4">
+                {walletStatus.usdc && (
+                  <StatusIndicator 
+                    label="USDC Wallets" 
+                    status={walletStatus.usdc.balance > 0 ? 'healthy' : 'warning'}
+                    details={`${walletStatus.usdc.balance} USDC available`}
+                  />
+                )}
+                {walletStatus.zec && (
+                  <StatusIndicator 
+                    label="ZEC Wallets" 
+                    status={walletStatus.zec.balance > 0 ? 'healthy' : 'warning'}
+                    details={`${walletStatus.zec.balance} ZEC available`}
+                  />
+                )}
+                {walletStatus.xmr && (
+                  <StatusIndicator 
+                    label="XMR Wallet" 
+                    status={walletStatus.xmr.balance > 0 ? 'healthy' : 'warning'}
+                    details={`${walletStatus.xmr.balance} XMR available`}
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="bg-gray-800/30 rounded-xl p-6">
+              <h3 className="text-lg font-bold text-white mb-4">Quick Actions</h3>
+              <div className="space-y-3">
+                <button className="w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-medium transition-colors">
+                  Sync Wallets
+                </button>
+                <button className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition-colors">
+                  Update Rates
+                </button>
+                <button className="w-full px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-medium transition-colors">
+                  View Reports
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="bg-gray-800/30 rounded-xl p-6">
+            <h3 className="text-lg font-bold text-white mb-4">Recent Activity</h3>
+            <div className="space-y-3">
+              {data?.recentPayments?.slice(0, 5).map(payment => (
+                <div key={payment.id} className="flex items-center justify-between py-3 border-b border-gray-700/50 last:border-0">
+                  <div className="flex items-center gap-3">
+                    <CurrencyBadge currency={payment.currency?.toLowerCase()} />
+                    <div>
+                      <p className="text-white font-medium">{payment.clientId?.slice(0, 12)}...</p>
+                      <p className="text-gray-400 text-sm">{new Date(payment.createdAt).toLocaleTimeString()}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-white font-bold">{parseFloat(payment.amount).toFixed(4)}</p>
+                    <p className={`text-xs font-medium ${payment.status === 'confirmed' ? 'text-green-400' : 'text-yellow-400'}`}>
+                      {payment.status}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function PaymentsTab({ payments }) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-bold text-white">All Payments</h3>
+            <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-medium flex items-center gap-2">
+              <RefreshIcon className="w-4 h-4" />
+              <span>Refresh</span>
+            </button>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-700">
+                  <th className="pb-3 text-left text-gray-400 font-medium">ID</th>
+                  <th className="pb-3 text-left text-gray-400 font-medium">Amount</th>
+                  <th className="pb-3 text-left text-gray-400 font-medium">Currency</th>
+                  <th className="pb-3 text-left text-gray-400 font-medium">Network</th>
+                  <th className="pb-3 text-left text-gray-400 font-medium">Status</th>
+                  <th className="pb-3 text-left text-gray-400 font-medium">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payments.map(payment => (
+                  <tr key={payment.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                    <td className="py-3">
+                      <code className="text-gray-300 text-sm">{payment.id.slice(0, 10)}...</code>
+                    </td>
+                    <td className="py-3 text-white font-medium">
+                      {parseFloat(payment.amount).toFixed(4)}
+                    </td>
+                    <td className="py-3">
+                      <CurrencyBadge currency={payment.currency?.toLowerCase()} />
+                    </td>
+                    <td className="py-3">
+                      <NetworkBadge network={payment.network} />
+                    </td>
+                    <td className="py-3">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        payment.status === 'confirmed' ? 'bg-green-500/20 text-green-300' :
+                        payment.status === 'failed' ? 'bg-red-500/20 text-red-300' :
+                        'bg-yellow-500/20 text-yellow-300'
+                      }`}>
+                        {payment.status}
+                      </span>
+                    </td>
+                    <td className="py-3 text-gray-400 text-sm">
+                      {new Date(payment.createdAt).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    }
+
+    function PrivacyTab({ routes }) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-bold text-white">Privacy Routes</h3>
+            <div className="flex items-center gap-3">
+              <span className="text-gray-400 text-sm">{routes.length} routes</span>
+              <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-medium flex items-center gap-2">
+                <RefreshIcon className="w-4 h-4" />
+                <span>Refresh</span>
+              </button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {routes.map(route => (
+              <div key={route.id} className="bg-gray-800/30 rounded-xl p-5 border border-gray-700/50">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <ShieldIcon className="w-6 h-6 text-purple-400" />
+                    <div>
+                      <h4 className="text-white font-bold">{route.id}</h4>
+                      <p className="text-gray-400 text-sm">Created {new Date(route.createdAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    route.status === 'completed' ? 'bg-green-500/20 text-green-300' :
+                    route.status === 'failed' ? 'bg-red-500/20 text-red-300' :
+                    'bg-blue-500/20 text-blue-300'
+                  }`}>
+                    {route.status}
+                  </span>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-gray-400 text-sm">Source</p>
+                      <p className="text-white font-medium">{route.sourceChain}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 text-sm">Amount</p>
+                      <p className="text-white font-medium">{route.amount} {route.currency}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-gray-400 text-sm">Hops</p>
+                      <p className="text-white font-medium">{route.hopCount || 1}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 text-sm">Privacy Score</p>
+                      <p className="text-white font-medium">{route.privacyScore || 'N/A'}</p>
+                    </div>
+                  </div>
+                  
+                  {route.txHash && (
+                    <div>
+                      <p className="text-gray-400 text-sm mb-1">Transaction</p>
+                      <code className="text-gray-300 text-xs break-all">{route.txHash}</code>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function DeferredTab({ payments }) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-bold text-white">Deferred Payments</h3>
+            <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-medium flex items-center gap-2">
+              <RefreshIcon className="w-4 h-4" />
+              <span>Refresh</span>
+            </button>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-700">
+                  <th className="pb-3 text-left text-gray-400 font-medium">Client ID</th>
+                  <th className="pb-3 text-left text-gray-400 font-medium">Amount</th>
+                  <th className="pb-3 text-left text-gray-400 font-medium">Resource</th>
+                  <th className="pb-3 text-left text-gray-400 font-medium">Settled</th>
+                  <th className="pb-3 text-left text-gray-400 font-medium">Created</th>
+                  <th className="pb-3 text-left text-gray-400 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payments.map(payment => (
+                  <tr key={payment.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                    <td className="py-3">
+                      <code className="text-gray-300 text-sm">{payment.clientId?.slice(0, 12)}...</code>
+                    </td>
+                    <td className="py-3 text-white font-medium">
+                      ${parseFloat(payment.amount).toFixed(2)}
+                    </td>
+                    <td className="py-3 text-gray-300">
+                      {payment.resource || 'N/A'}
+                    </td>
+                    <td className="py-3">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        payment.settled ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'
+                      }`}>
+                        {payment.settled ? 'Yes' : 'No'}
+                      </span>
+                    </td>
+                    <td className="py-3 text-gray-400 text-sm">
+                      {new Date(payment.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="py-3">
+                      {!payment.settled && (
+                        <button className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-white text-sm font-medium">
+                          Settle
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    }
+
+    function WalletsTab({ data, walletStatus }) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-bold text-white">Wallet Management</h3>
+            <div className="flex items-center gap-3">
+              <button className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-medium">
+                Generate New Address
+              </button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* USDC Wallets */}
+            <div className="bg-gray-800/30 rounded-xl p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                  <span className="text-blue-400 font-bold">USDC</span>
+                </div>
+                <div>
+                  <h4 className="text-white font-bold">USDC Wallets</h4>
+                  <p className="text-gray-400 text-sm">Stablecoin across multiple chains</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                {data?.depositWallets?.usdc?.map(wallet => (
+                  <WalletCard 
+                    key={wallet.id}
+                    network={wallet.network}
+                    address={wallet.address}
+                    balance={wallet.balance}
+                    currency="USDC"
+                  />
+                ))}
+              </div>
+            </div>
+            
+            {/* ZEC Wallets */}
+            <div className="bg-gray-800/30 rounded-xl p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                  <span className="text-yellow-400 font-bold">ZEC</span>
+                </div>
+                <div>
+                  <h4 className="text-white font-bold">Zcash Wallets</h4>
+                  <p className="text-gray-400 text-sm">Shielded and transparent addresses</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                {data?.depositWallets?.zec?.map(wallet => (
+                  <WalletCard 
+                    key={wallet.id}
+                    network={wallet.type}
+                    address={wallet.address}
+                    balance={wallet.balance}
+                    currency="ZEC"
+                  />
+                ))}
+              </div>
+            </div>
+            
+            {/* XMR Wallet */}
+            <div className="lg:col-span-2 bg-gray-800/30 rounded-xl p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                  <span className="text-orange-400 font-bold">XMR</span>
+                </div>
+                <div>
+                  <h4 className="text-white font-bold">Monero Wallet</h4>
+                  <p className="text-gray-400 text-sm">Private by default</p>
+                </div>
+              </div>
+              
+              {data?.depositWallets?.xmr && (
+                <WalletCard 
+                  network="mainnet"
+                  address={data.depositWallets.xmr.address}
+                  balance={data.depositWallets.xmr.balance}
+                  currency="XMR"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function ConfigTab({ config }) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-bold text-white">System Configuration</h3>
+            <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-medium">
+              Save Changes
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <ConfigSection title="General">
+              <ConfigItem label="Environment" value={config?.environment} />
+              <ConfigItem label="Port" value={config?.port} />
+              <ConfigItem label="Log Level" value={config?.logLevel} />
+            </ConfigSection>
+            
+            <ConfigSection title="Payment Settings">
+              <ConfigItem label="Min Payment" value={`$${config?.minPayment}`} />
+              <ConfigItem label="Max Payment" value={`$${config?.maxPayment}`} />
+              <ConfigItem label="Default Currency" value={config?.defaultCurrency} />
+            </ConfigSection>
+            
+            <ConfigSection title="Rate Limiting">
+              <ConfigItem label="Window" value={`${(config?.rateLimitWindow || 60000) / 60000} min`} />
+              <ConfigItem label="Max Requests" value={config?.rateLimitMax} />
+            </ConfigSection>
+            
+            <ConfigSection title="Deferred Payments">
+              <ConfigItem label="Enabled" value={config?.deferredEnabled ? 'Yes' : 'No'} />
+              <ConfigItem label="Max Duration" value={`${(config?.deferredMaxDuration || 86400000) / 3600000} hours`} />
+            </ConfigSection>
+            
+            <ConfigSection title="Privacy Routing">
+              <ConfigItem label="Enabled" value={config?.privacyEnabled ? 'Yes' : 'No'} />
+              <ConfigItem label="Min Amount" value={`$${config?.privacyMinAmount}`} />
+              <ConfigItem label="Max Hops" value={config?.privacyMaxHops} />
+            </ConfigSection>
+            
+            <ConfigSection title="Security">
+              <ConfigItem label="JWT Expiry" value={`${(config?.jwtExpiry || 86400000) / 3600000} hours`} />
+              <ConfigItem label="Require 2FA" value={config?.require2FA ? 'Yes' : 'No'} />
+              <ConfigItem label="IP Whitelist" value={config?.ipWhitelist ? 'Enabled' : 'Disabled'} />
+            </ConfigSection>
+          </div>
+        </div>
+      );
+    }
+
+    function UsersTab({ users }) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-bold text-white">User Management</h3>
+            <button className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-medium">
+              Add User
+            </button>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-700">
+                  <th className="pb-3 text-left text-gray-400 font-medium">Username</th>
+                  <th className="pb-3 text-left text-gray-400 font-medium">Role</th>
+                  <th className="pb-3 text-left text-gray-400 font-medium">Created</th>
+                  <th className="pb-3 text-left text-gray-400 font-medium">Last Active</th>
+                  <th className="pb-3 text-left text-gray-400 font-medium">Status</th>
+                  <th className="pb-3 text-left text-gray-400 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(user => (
+                  <tr key={user.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                    <td className="py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center">
+                          <span className="text-purple-400 font-bold">{user.username[0]}</span>
+                        </div>
+                        <span className="text-white font-medium">{user.username}</span>
+                      </div>
+                    </td>
+                    <td className="py-3">
+                      <span className="px-2 py-1 bg-gray-700 rounded text-gray-300 text-xs font-medium">
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="py-3 text-gray-400 text-sm">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="py-3 text-gray-400 text-sm">
+                      {user.lastActive ? new Date(user.lastActive).toLocaleDateString() : 'Never'}
+                    </td>
+                    <td className="py-3">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        user.active ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
+                      }`}>
+                        {user.active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="py-3">
+                      <div className="flex items-center gap-2">
+                        <button className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-white text-sm">
+                          Edit
+                        </button>
+                        <button className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-white text-sm">
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    }
+
+    function LogsTab({ logs }) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-bold text-white">System Logs</h3>
+            <div className="flex items-center gap-3">
+              <select className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm">
+                <option>All Levels</option>
+                <option>Error</option>
+                <option>Warning</option>
+                <option>Info</option>
+                <option>Debug</option>
+              </select>
+              <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-medium">
+                Clear Logs
+              </button>
+            </div>
+          </div>
+          
+          <div className="bg-gray-900/50 rounded-lg p-4 max-h-96 overflow-y-auto">
+            <div className="space-y-2">
+              {logs.map((log, index) => (
+                <div key={index} className="font-mono text-sm">
+                  <span className="text-gray-500">[{new Date(log.timestamp).toLocaleTimeString()}]</span>
+                  <span className={`ml-3 ${
+                    log.level === 'ERROR' ? 'text-red-400' :
+                    log.level === 'WARN' ? 'text-yellow-400' :
+                    log.level === 'INFO' ? 'text-blue-400' :
+                    'text-gray-400'
+                  }`}>
+                    [{log.level}]
+                  </span>
+                  <span className="ml-3 text-gray-300">{log.message}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Helper Components for Payment Portal
+    function StepIndicator({ number, label, active, completed }) {
+      return (
+        <div className="flex flex-col items-center">
+          <div className={`
+            w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold
+            transition-all duration-300
+            ${completed ? 'gradient-purple scale-110' : active ? 'gradient-purple' : 'bg-gray-800 text-gray-400'}
+          `}>
+            {completed ? <CheckCircleIcon className="w-7 h-7 text-white" /> : number}
+          </div>
+          <span className={`text-sm mt-3 font-medium ${active ? 'text-white' : 'text-gray-500'}`}>
+            {label}
+          </span>
+        </div>
+      );
+    }
+
+    function PaymentTypeButton({ type, icon, label, description, selected, onClick }) {
+      return (
+        <button
+          onClick={onClick}
+          className={`
+            p-4 rounded-xl border-2 transition-all text-left
+            ${selected 
+              ? 'border-purple-500 bg-purple-500/10' 
+              : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
+            }
+          `}
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <div className={`
+              w-10 h-10 rounded-lg flex items-center justify-center
+              ${selected ? 'bg-purple-500/20' : 'bg-gray-700'}
+            `}>
+              {icon}
+            </div>
+            <span className={`font-bold ${selected ? 'text-white' : 'text-gray-300'}`}>
+              {label}
+            </span>
+          </div>
+          <p className="text-sm text-gray-400">{description}</p>
+        </button>
+      );
+    }
+
+    function CurrencyButton({ currency, label, description, selected, onClick, disabled }) {
+      const colorMap = {
+        usdc: 'border-blue-500 bg-blue-500/10 text-blue-400',
+        zec: 'border-yellow-500 bg-yellow-500/10 text-yellow-400',
+        xmr: 'border-orange-500 bg-orange-500/10 text-orange-400',
+      };
+      
+      const color = colorMap[currency] || 'border-gray-500 bg-gray-500/10 text-gray-400';
+      
+      return (
+        <button
+          onClick={onClick}
+          disabled={disabled}
+          className={`
+            p-4 rounded-xl border-2 transition-all text-center relative
+            ${selected ? color : 'border-gray-700 bg-gray-800/50 hover:border-gray-600 text-gray-300'}
+            ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+          `}
+        >
+          {disabled && (
+            <div className="absolute -top-2 -right-2">
+              <span className="px-2 py-1 bg-gray-700 text-gray-400 text-xs rounded-full">Soon</span>
+            </div>
+          )}
+          <div className="text-lg font-bold mb-1">{label}</div>
+          <div className="text-sm text-gray-400">{description}</div>
+        </button>
+      );
+    }
+
+    function NetworkButton({ network, label, selected, onClick }) {
+      const colorMap = {
+        base: 'border-blue-500 bg-blue-500/10 text-blue-400',
+        polygon: 'border-purple-500 bg-purple-500/10 text-purple-400',
+        starknet: 'border-orange-500 bg-orange-500/10 text-orange-400',
+        shielded: 'border-yellow-500 bg-yellow-500/10 text-yellow-400',
+        transparent: 'border-gray-500 bg-gray-500/10 text-gray-400',
+      };
+      
+      const color = colorMap[network] || 'border-gray-500 bg-gray-500/10 text-gray-400';
+      
+      return (
+        <button
+          onClick={onClick}
+          className={`
+            py-3 rounded-xl border-2 transition-all text-center font-medium
+            ${selected ? color : 'border-gray-700 bg-gray-800/50 hover:border-gray-600 text-gray-300'}
+          `}
+        >
+          {label}
+        </button>
+      );
+    }
+
+    function DetailItem({ label, value, code = false }) {
+      return (
+        <div>
+          <p className="text-gray-400 text-sm mb-1">{label}</p>
+          {code ? (
+            <code className="text-white font-mono text-sm break-all">{value}</code>
+          ) : (
+            <p className="text-white font-medium">{value}</p>
+          )}
+        </div>
+      );
+    }
+
+    // Helper Components for Admin Dashboard
+    function StatusIndicator({ label, status, details }) {
+      const statusColors = {
+        healthy: 'text-green-400',
+        warning: 'text-yellow-400',
+        unhealthy: 'text-red-400',
+      };
+      
+      return (
+        <div className="flex items-center justify-between">
+          <span className="text-gray-300">{label}</span>
+          <div className="text-right">
+            <span className={`text-sm font-medium ${statusColors[status]}`}>{status}</span>
+            <p className="text-gray-500 text-xs mt-0.5">{details}</p>
+          </div>
+        </div>
+      );
+    }
+
+    function WalletCard({ network, address, balance, currency }) {
+      const [copied, setCopied] = useState(false);
+      
+      const copyAddress = async () => {
+        await navigator.clipboard.writeText(address);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      };
+      
+      return (
+        <div className="bg-gray-900/50 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <NetworkBadge network={network} />
+            <div className="text-right">
+              <div className="text-white font-bold">{balance} {currency}</div>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <code className="text-gray-400 text-sm flex-1 truncate">{address}</code>
+            <button
+              onClick={copyAddress}
+              className="p-1 hover:bg-gray-800 rounded"
+            >
+              {copied ? (
+                <CheckCircleIcon className="w-4 h-4 text-green-400" />
+              ) : (
+                <CopyIcon className="w-4 h-4 text-gray-400" />
+              )}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    function ConfigSection({ title, children }) {
+      return (
+        <div className="bg-gray-800/30 rounded-xl p-5">
+          <h4 className="text-white font-bold mb-4">{title}</h4>
+          <div className="space-y-3">
+            {children}
+          </div>
+        </div>
+      );
+    }
+
+    function ConfigItem({ label, value }) {
+      return (
+        <div>
+          <p className="text-gray-400 text-sm mb-1">{label}</p>
+          <p className="text-white font-medium">{value}</p>
+        </div>
+      );
+    }
+
+    // Render the application
+    ReactDOM.render(<X402Platform />, document.getElementById('root'));
+  </script>
+</body>
+</html>
