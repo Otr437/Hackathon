@@ -1,0 +1,69 @@
+#!/bin/bash
+
+# ==============================================================================
+# COMPLETE GROTH16 CEREMONY FOR PRIVATESWAP - DECEMBER 2025
+# ==============================================================================
+
+set -e
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+NC='\033[0m'
+
+CIRCUIT_NAME="PrivateSwap"
+CIRCUIT_FILE="${CIRCUIT_NAME}.circom"
+POWER=22
+CURVE="bn128"
+LEVELS=20
+
+BUILD_DIR="build"
+PTAU_DIR="${BUILD_DIR}/ptau"
+ZKEY_DIR="${BUILD_DIR}/zkey"
+PROOF_DIR="${BUILD_DIR}/proof"
+
+R1CS_FILE="${BUILD_DIR}/${CIRCUIT_NAME}.r1cs"
+WASM_DIR="${BUILD_DIR}/${CIRCUIT_NAME}_js"
+VERIFICATION_KEY="${ZKEY_DIR}/verification_key.json"
+VERIFIER_SOL="${BUILD_DIR}/Verifier.sol"
+
+echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}║   COMPLETE GROTH16 CEREMONY - PRIVATESWAP - DECEMBER 2025     ║${NC}"
+echo -e "${BLUE}╚════════════════════════════════════════════════════════════════╝${NC}"
+echo ""
+
+# Prerequisites
+command -v circom >/dev/null 2>&1 || { echo -e "${RED}circom not installed${NC}"; exit 1; }
+command -v snarkjs >/dev/null 2>&1 || { echo -e "${RED}snarkjs not installed${NC}"; exit 1; }
+command -v node >/dev/null 2>&1 || { echo -e "${RED}node not installed${NC}"; exit 1; }
+[ ! -f "$CIRCUIT_FILE" ] && { echo -e "${RED}${CIRCUIT_FILE} not found${NC}"; exit 1; }
+
+mkdir -p "$BUILD_DIR" "$PTAU_DIR" "$ZKEY_DIR" "$PROOF_DIR"
+
+# Compile Circuit
+echo -e "${YELLOW}[Step 1]${NC} Compiling circuit..."
+circom "$CIRCUIT_FILE" --r1cs --wasm --sym -o "$BUILD_DIR" --O2
+snarkjs r1cs info "$R1CS_FILE"
+echo ""
+
+# Powers of Tau
+echo -e "${MAGENTA}Choose Powers of Tau:${NC}"
+echo "1) Download Hermez (recommended)"
+echo "2) Generate your own"
+read -p "Choice (1/2): " PTAU_CHOICE
+echo ""
+
+if [ "$PTAU_CHOICE" = "1" ]; then
+    HERMEZ_FILE="powersOfTau28_hez_final_${POWER}.ptau"
+    PTAU_FINAL="${PTAU_DIR}/${HERMEZ_FILE}"
+    
+    if [ ! -f "$PTAU_FINAL" ]; then
+        echo "Downloading..."
+        wget --show-progress "https://hermez.s3-eu-west-1.amazonaws.com/${HERMEZ_FILE}" -O "$PTAU_FINAL" || \
+        curl -L --progress-bar "https://hermez.s3-eu-west-1.amazonaws.com/${HERMEZ_FILE}" -o "$PTAU_FINAL"
+    fi
+    
+    snarkjs powersoftau verify "$PTAU_FINAL"
+    echo
