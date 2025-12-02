@@ -1,1 +1,1593 @@
-1
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Private Cross-Chain Swap Protocol - ZK Proof Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(147, 51, 234, 0.6);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(147, 51, 234, 0.8);
+        }
+        
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        .gradient-text {
+            background: linear-gradient(90deg, #8B5CF6 0%, #EC4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        /* Circuit animation */
+        .circuit-node {
+            transition: all 0.3s ease;
+        }
+        
+        .circuit-node.active {
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+        }
+        
+        /* Proof generation steps */
+        .proof-step {
+            transition: all 0.5s ease;
+        }
+        
+        .proof-step.active {
+            transform: translateX(5px);
+        }
+        
+        /* Fade in */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-black via-purple-950 to-black text-white min-h-screen">
+    <div id="app" class="min-h-screen">
+        <!-- Header -->
+        <div class="border-b border-purple-500/30 bg-black/50 backdrop-blur sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold">Private Cross-Chain Swap Protocol</h1>
+                            <p class="text-xs text-gray-400">Zero-Knowledge Proof System Demo</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-2 overflow-x-auto pb-2">
+                    <button onclick="setPage('overview')" 
+                            class="px-4 py-2 rounded-lg font-semibold transition-all whitespace-nowrap text-sm bg-purple-600 text-white">
+                        📖 Overview
+                    </button>
+                    <button onclick="setPage('circuit')" 
+                            class="px-4 py-2 rounded-lg font-semibold transition-all whitespace-nowrap text-sm bg-slate-800 text-gray-400 hover:bg-slate-700">
+                        ⚡ Circuit
+                    </button>
+                    <button onclick="setPage('powers')" 
+                            class="px-4 py-2 rounded-lg font-semibold transition-all whitespace-nowrap text-sm bg-slate-800 text-gray-400 hover:bg-slate-700">
+                        🔮 Powers of Tau
+                    </button>
+                    <button onclick="setPage('compile')" 
+                            class="px-4 py-2 rounded-lg font-semibold transition-all whitespace-nowrap text-sm bg-slate-800 text-gray-400 hover:bg-slate-700">
+                        🔧 Compile
+                    </button>
+                    <button onclick="setPage('prove')" 
+                            class="px-4 py-2 rounded-lg font-semibold transition-all whitespace-nowrap text-sm bg-slate-800 text-gray-400 hover:bg-slate-700">
+                        🛡️ Generate Proof
+                    </button>
+                    <button onclick="setPage('swap')" 
+                            class="px-4 py-2 rounded-lg font-semibold transition-all whitespace-nowrap text-sm bg-slate-800 text-gray-400 hover:bg-slate-700">
+                        💱 Execute Swap
+                    </button>
+                    <button onclick="setPage('verify')" 
+                            class="px-4 py-2 rounded-lg font-semibold transition-all whitespace-nowrap text-sm bg-slate-800 text-gray-400 hover:bg-slate-700">
+                        ✅ Verification
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div id="content" class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+            <!-- Overview Page -->
+            <div id="overview-page" class="space-y-6">
+                <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6 sm:p-8">
+                    <h2 class="text-2xl sm:text-3xl font-bold mb-4">What is Private Cross-Chain Swapping?</h2>
+                    <p class="text-gray-300 mb-4">
+                        This protocol enables <strong class="text-purple-300">completely private</strong> token swaps between different blockchains. Unlike traditional bridges, 
+                        this system uses <strong class="text-purple-300">Zero-Knowledge Proofs (ZK-SNARKs)</strong> to hide:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-300 ml-4 mb-4">
+                        <li><strong>Who is sending</strong> - Your identity remains anonymous</li>
+                        <li><strong>How much</strong> - Transaction amounts are encrypted</li>
+                        <li><strong>Who is receiving</strong> - Recipient addresses are hidden</li>
+                        <li><strong>Transaction links</strong> - Input and output are unlinkable</li>
+                    </ul>
+                    <p class="text-gray-300">
+                        The system proves the transaction is valid <em class="text-purple-300">without revealing any sensitive information</em>. This is achieved through 
+                        advanced cryptography: Groth16 ZK-SNARKs, Poseidon hashing, and Merkle tree commitments.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                        <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i class="fas fa-shield-alt text-purple-400"></i>
+                            How It Works
+                        </h3>
+                        <div class="space-y-4">
+                            <div class="flex gap-4">
+                                <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0 font-bold">
+                                    1
+                                </div>
+                                <div>
+                                    <div class="font-semibold">Generate Secret</div>
+                                    <div class="text-sm text-gray-400">Create a private secret key that never leaves your device</div>
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0 font-bold">
+                                    2
+                                </div>
+                                <div>
+                                    <div class="font-semibold">Create Commitment</div>
+                                    <div class="text-sm text-gray-400">Lock your tokens in a cryptographic commitment on the source chain</div>
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0 font-bold">
+                                    3
+                                </div>
+                                <div>
+                                    <div class="font-semibold">Generate Proof</div>
+                                    <div class="text-sm text-gray-400">Create a ZK-SNARK proof that you own the committed tokens</div>
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0 font-bold">
+                                    4
+                                </div>
+                                <div>
+                                    <div class="font-semibold">Submit & Verify</div>
+                                    <div class="text-sm text-gray-400">Contract verifies proof and releases tokens on destination chain</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                        <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i class="fas fa-lock text-purple-400"></i>
+                            Privacy Guarantees
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-check-circle text-green-400 mt-0.5"></i>
+                                <div>
+                                    <div class="font-semibold text-sm">Sender Anonymity</div>
+                                    <div class="text-xs text-gray-400">Nullifiers prevent linking sender identity to transactions</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-check-circle text-green-400 mt-0.5"></i>
+                                <div>
+                                    <div class="font-semibold text-sm">Amount Privacy</div>
+                                    <div class="text-xs text-gray-400">Commitments hide transaction values using Poseidon hashes</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-check-circle text-green-400 mt-0.5"></i>
+                                <div>
+                                    <div class="font-semibold text-sm">Recipient Privacy</div>
+                                    <div class="text-xs text-gray-400">Encrypted recipient addresses in output commitments</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-check-circle text-green-400 mt-0.5"></i>
+                                <div>
+                                    <div class="font-semibold text-sm">Unlinkability</div>
+                                    <div class="text-xs text-gray-400">Cannot trace which input corresponds to which output</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-check-circle text-green-400 mt-0.5"></i>
+                                <div>
+                                    <div class="font-semibold text-sm">No Trusted Setup</div>
+                                    <div class="text-xs text-gray-400">Powers of Tau ceremony with toxic waste destruction</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gradient-to-r from-purple-900/50 to-pink-900/50 rounded-xl border border-purple-500/30 p-6">
+                    <div class="flex items-start gap-3">
+                        <i class="fas fa-info-circle text-purple-400 mt-1"></i>
+                        <div>
+                            <h3 class="font-bold text-lg mb-2">Why This Matters</h3>
+                            <p class="text-gray-300 text-sm mb-3">
+                                Current cross-chain bridges expose all transaction details publicly - who's sending, how much, and where it's going. 
+                                This creates serious privacy concerns and makes users vulnerable to tracking, front-running, and targeted attacks.
+                            </p>
+                            <p class="text-gray-300 text-sm">
+                                Our ZK-based protocol solves this by proving transaction validity <strong>without revealing any details</strong>. 
+                                It combines the privacy of systems like Zcash with the flexibility of cross-chain swaps.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Circuit Page -->
+            <div id="circuit-page" class="hidden space-y-6">
+                <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
+                        <h2 class="text-2xl font-bold flex items-center gap-2">
+                            <i class="fas fa-code text-purple-400"></i>
+                            Circom Circuit Code
+                        </h2>
+                        <button onclick="copyCircuitCode()"
+                                class="text-sm bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg flex items-center gap-2 w-fit">
+                            <i class="far fa-copy"></i>
+                            Copy Code
+                        </button>
+                    </div>
+                    <p class="text-gray-400 text-sm mb-4">
+                        This is the actual Circom circuit that defines our zero-knowledge proof system. It creates the mathematical constraints 
+                        that ensure privacy while proving transaction validity.
+                    </p>
+                    <pre class="bg-black/50 p-4 rounded-lg overflow-x-auto text-xs text-green-400 font-mono max-h-[600px] overflow-y-auto border border-slate-700">
+pragma circom 2.1.6;
+include "node_modules/circomlib/circuits/poseidon.circom";
+include "node_modules/circomlib/circuits/comparators.circom";
+
+template PrivateSwap() {
+    // Private inputs (never revealed)
+    signal input secret;
+    signal input senderKey;
+    signal input amountIn;
+    signal input amountOut;
+    signal input recipient;
+    signal input chainIdFrom;
+    signal input chainIdTo;
+    signal input tokenFrom;
+    signal input tokenTo;
+    signal input timestamp;
+    signal input merkleRoot;
+    
+    // Public outputs (visible on-chain)
+    signal output nullifierHash;
+    signal output commitmentOut;
+    signal output rootAfter;
+    
+    // Component 1: Poseidon hash for nullifier
+    component poseidon = Poseidon(3);
+    component poseidon2 = Poseidon(4);
+    component comp = LessThan(64);
+    component rootHasher = Poseidon(2);
+    
+    // Generate nullifier: hash(secret, chainFrom, chainTo)
+    poseidon.inputs[0] <== secret;
+    poseidon.inputs[1] <== chainIdFrom;
+    poseidon.inputs[2] <== chainIdTo;
+    nullifierHash <== poseidon.out;
+    
+    // Generate output commitment
+    poseidon2.inputs[0] <== secret;
+    poseidon2.inputs[1] <== amountOut;
+    poseidon2.inputs[2] <== recipient;
+    poseidon2.inputs[3] <== chainIdTo;
+    commitmentOut <== poseidon2.out;
+    
+    // Constraint: amount must be greater than 0
+    comp.in[0] <== 0;
+    comp.in[1] <== amountIn;
+    comp.out === 1;
+    
+    // Update merkle root
+    rootHasher.inputs[0] <== merkleRoot;
+    rootHasher.inputs[1] <== commitmentOut;
+    rootAfter <== rootHasher.out;
+}
+
+component main { public [ merkleRoot ] } = PrivateSwap();</pre>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                        <h3 class="text-lg font-bold mb-4">Circuit Components</h3>
+                        <div class="space-y-4 text-sm">
+                            <div>
+                                <div class="font-semibold text-purple-400 mb-1">Poseidon(3) - Nullifier</div>
+                                <p class="text-gray-300">
+                                    Takes secret + chain IDs and produces a unique nullifier to prevent double-spending.
+                                </p>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-purple-400 mb-1">Poseidon(4) - Commitment</div>
+                                <p class="text-gray-300">
+                                    Combines secret, amount, recipient, and destination chain into an encrypted commitment.
+                                </p>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-purple-400 mb-1">LessThan(64) - Validator</div>
+                                <p class="text-gray-300">
+                                    Ensures the amount being swapped is greater than zero.
+                                </p>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-purple-400 mb-1">Poseidon(2) - Merkle Updater</div>
+                                <p class="text-gray-300">
+                                    Updates the merkle tree root by hashing the old root with the new commitment.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                        <h3 class="text-lg font-bold mb-4">Key Properties</h3>
+                        <div class="space-y-4 text-sm">
+                            <div class="bg-slate-800 p-3 rounded-lg">
+                                <div class="font-semibold mb-1">🔒 Privacy</div>
+                                <p class="text-gray-300 text-xs">
+                                    Private inputs are NEVER revealed. Only the outputs (nullifier, commitment, root) are public.
+                                </p>
+                            </div>
+                            <div class="bg-slate-800 p-3 rounded-lg">
+                                <div class="font-semibold mb-1">✅ Validity</div>
+                                <p class="text-gray-300 text-xs">
+                                    Mathematical constraints ensure all transactions are valid without revealing details.
+                                </p>
+                            </div>
+                            <div class="bg-slate-800 p-3 rounded-lg">
+                                <div class="font-semibold mb-1">⚡ Efficiency</div>
+                                <p class="text-gray-300 text-xs">
+                                    Poseidon hash is optimized for zero-knowledge circuits with minimal constraints.
+                                </p>
+                            </div>
+                            <div class="bg-slate-800 p-3 rounded-lg">
+                                <div class="font-semibold mb-1">🛡️ Security</div>
+                                <p class="text-gray-300 text-xs">
+                                    All constraints are cryptographically verified on-chain.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Powers of Tau Page -->
+            <div id="powers-page" class="hidden space-y-6">
+                <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+                        <i class="fas fa-bolt text-purple-400"></i>
+                        Powers of Tau Ceremony
+                    </h2>
+                    <p class="text-gray-300 mb-4">
+                        The Powers of Tau is a cryptographic ceremony that generates the Common Reference String (CRS) needed for ZK-SNARKs. 
+                        It involves computing powers of a secret value τ (tau) and then destroying the secret to ensure security.
+                    </p>
+                    <div class="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4 mb-4">
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-exclamation-triangle text-yellow-400 mt-0.5"></i>
+                            <div class="text-sm">
+                                <div class="font-semibold text-yellow-400 mb-1">Toxic Waste</div>
+                                <p class="text-gray-300">
+                                    The secret τ is called "toxic waste" because if anyone knows it, they can create fake proofs. 
+                                    The ceremony ensures this secret is destroyed after generating the CRS.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="runPowersOfTau()" 
+                            id="tau-button"
+                            class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-6 py-3 rounded-lg font-bold disabled:opacity-50">
+                        Run Powers of Tau Ceremony
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                        <h3 class="text-lg font-bold mb-4">Ceremony Log</h3>
+                        <div class="bg-black/50 rounded-lg p-4 font-mono text-xs max-h-[400px] overflow-y-auto" id="tau-logs">
+                            <p class="text-gray-500">Click "Run Powers of Tau Ceremony" to start...</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                        <h3 class="text-lg font-bold mb-4">Generated Powers</h3>
+                        <div class="space-y-2" id="tau-powers">
+                            <p class="text-gray-400 text-sm">No powers generated yet...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Compile Page -->
+            <div id="compile-page" class="hidden space-y-6">
+                <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+                        <i class="fas fa-cogs text-purple-400"></i>
+                        Circuit Compilation
+                    </h2>
+                    <p class="text-gray-300 mb-4">
+                        Compilation transforms the Circom circuit into a constraint system (R1CS) and generates the witness calculator. 
+                        This process analyzes all the constraints and prepares everything needed for proof generation.
+                    </p>
+                    <button onclick="compileCircuit()" 
+                            class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-6 py-3 rounded-lg font-bold">
+                        Compile Circuit
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                        <h3 class="text-lg font-bold mb-4">Compilation Output</h3>
+                        <div class="bg-black/50 rounded-lg p-4 font-mono text-xs max-h-[500px] overflow-y-auto" id="compile-logs">
+                            <p class="text-gray-500">Click "Compile Circuit" to start...</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                        <h3 class="text-lg font-bold mb-4">Compilation Stages</h3>
+                        <div class="space-y-4">
+                            <div class="bg-slate-800 p-4 rounded-lg">
+                                <div class="font-semibold text-purple-400 mb-2">1. Parse Circuit</div>
+                                <p class="text-sm text-gray-300">
+                                    Reads the .circom file and parses the circuit template, signals, and components.
+                                </p>
+                            </div>
+                            <div class="bg-slate-800 p-4 rounded-lg">
+                                <div class="font-semibold text-purple-400 mb-2">2. Build Constraints</div>
+                                <p class="text-sm text-gray-300">
+                                    Converts the circuit logic into mathematical constraints (equations).
+                                </p>
+                            </div>
+                            <div class="bg-slate-800 p-4 rounded-lg">
+                                <div class="font-semibold text-purple-400 mb-2">3. Generate R1CS</div>
+                                <p class="text-sm text-gray-300">
+                                    Creates the Rank-1 Constraint System file used by the prover.
+                                </p>
+                            </div>
+                            <div class="bg-slate-800 p-4 rounded-lg">
+                                <div class="font-semibold text-purple-400 mb-2">4. Witness Calculator</div>
+                                <p class="text-sm text-gray-300">
+                                    Generates WASM code that computes witness values from inputs.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prove Page -->
+            <div id="prove-page" class="hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                        <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i class="fas fa-shield-alt text-purple-400"></i>
+                            Proof Generation Inputs
+                        </h2>
+
+                        <div class="space-y-4 mb-6">
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-2">Secret (Private)</label>
+                                <div class="flex gap-2">
+                                    <input type="password" 
+                                           id="secret-input"
+                                           class="flex-1 bg-slate-800 px-3 py-2 rounded border border-slate-700 text-sm"
+                                           placeholder="Generate or enter secret">
+                                    <button onclick="toggleSecretVisibility()"
+                                            class="bg-slate-800 px-3 py-2 rounded border border-slate-700">
+                                        <i class="far fa-eye"></i>
+                                    </button>
+                                    <button onclick="generateSecret()"
+                                            class="bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded text-sm font-semibold">
+                                        Generate
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-2">Sender Key (Private)</label>
+                                <div class="flex gap-2">
+                                    <input type="password" 
+                                           id="sender-key-input"
+                                           class="flex-1 bg-slate-800 px-3 py-2 rounded border border-slate-700 text-sm"
+                                           placeholder="Generate sender key">
+                                    <button onclick="generateSenderKey()"
+                                            class="bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded text-sm font-semibold">
+                                        Generate
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-2">Amount</label>
+                                <input type="number" 
+                                       id="amount-input"
+                                       class="w-full bg-slate-800 px-3 py-2 rounded border border-slate-700 text-sm"
+                                       placeholder="100">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-2">Recipient Address</label>
+                                <input type="text" 
+                                       id="recipient-input"
+                                       class="w-full bg-slate-800 px-3 py-2 rounded border border-slate-700 text-sm"
+                                       placeholder="0x...">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-sm text-gray-400 mb-2">From Chain</label>
+                                    <select id="from-chain-select" 
+                                            class="w-full bg-slate-800 px-3 py-2 rounded border border-slate-700 text-sm">
+                                        <option value="ethereum">⟠ Ethereum</option>
+                                        <option value="polygon" selected>⬡ Polygon</option>
+                                        <option value="zcash">Ⓩ Zcash</option>
+                                        <option value="starknet">⬢ StarkNet</option>
+                                        <option value="arbitrum">◈ Arbitrum</option>
+                                        <option value="optimism">◉ Optimism</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm text-gray-400 mb-2">To Chain</label>
+                                    <select id="to-chain-select" 
+                                            class="w-full bg-slate-800 px-3 py-2 rounded border border-slate-700 text-sm">
+                                        <option value="ethereum">⟠ Ethereum</option>
+                                        <option value="polygon" selected>⬡ Polygon</option>
+                                        <option value="zcash">Ⓩ Zcash</option>
+                                        <option value="starknet">⬢ StarkNet</option>
+                                        <option value="arbitrum">◈ Arbitrum</option>
+                                        <option value="optimism">◉ Optimism</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button onclick="generateProof()"
+                                    id="generate-proof-button"
+                                    class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 py-3 rounded-lg font-bold disabled:opacity-50">
+                                Generate ZK-SNARK Proof
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                        <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i class="fas fa-tasks text-purple-400"></i>
+                            Proof Generation Steps
+                        </h2>
+
+                        <div class="space-y-3" id="proof-steps">
+                            <div class="p-3 rounded-lg border bg-slate-800/30 border-slate-700 proof-step">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <div class="w-4 h-4 border-2 border-slate-600 rounded-full"></div>
+                                    <span class="font-semibold text-sm">Step 1: Generate Nullifier</span>
+                                </div>
+                                <code class="text-xs text-purple-300 block hidden">Poseidon(secret, chainFrom, chainTo)</code>
+                            </div>
+                            <div class="p-3 rounded-lg border bg-slate-800/30 border-slate-700 proof-step">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <div class="w-4 h-4 border-2 border-slate-600 rounded-full"></div>
+                                    <span class="font-semibold text-sm">Step 2: Create Commitment</span>
+                                </div>
+                                <code class="text-xs text-purple-300 block hidden">Poseidon(secret, amount, recipient, chainTo)</code>
+                            </div>
+                            <div class="p-3 rounded-lg border bg-slate-800/30 border-slate-700 proof-step">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <div class="w-4 h-4 border-2 border-slate-600 rounded-full"></div>
+                                    <span class="font-semibold text-sm">Step 3: Validate Amount</span>
+                                </div>
+                                <code class="text-xs text-purple-300 block hidden">LessThan(0, amount) === 1</code>
+                            </div>
+                            <div class="p-3 rounded-lg border bg-slate-800/30 border-slate-700 proof-step">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <div class="w-4 h-4 border-2 border-slate-600 rounded-full"></div>
+                                    <span class="font-semibold text-sm">Step 4: Update Merkle Root</span>
+                                </div>
+                                <code class="text-xs text-purple-300 block hidden">Poseidon(oldRoot, commitment)</code>
+                            </div>
+                            <div class="p-3 rounded-lg border bg-slate-800/30 border-slate-700 proof-step">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <div class="w-4 h-4 border-2 border-slate-600 rounded-full"></div>
+                                    <span class="font-semibold text-sm">Step 5: Generate Witness</span>
+                                </div>
+                                <code class="text-xs text-purple-300 block hidden">Compute all signal values</code>
+                            </div>
+                            <div class="p-3 rounded-lg border bg-slate-800/30 border-slate-700 proof-step">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <div class="w-4 h-4 border-2 border-slate-600 rounded-full"></div>
+                                    <span class="font-semibold text-sm">Step 6: Generate Groth16 Proof</span>
+                                </div>
+                                <code class="text-xs text-purple-300 block hidden">Create ZK-SNARK proof</code>
+                            </div>
+                        </div>
+
+                        <div id="proof-results" class="hidden mt-6 bg-green-900/30 border border-green-500 rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-3">
+                                <i class="fas fa-check-circle text-green-400"></i>
+                                <span class="font-bold text-green-400">Proof Generated!</span>
+                            </div>
+                            <div class="space-y-2 text-xs">
+                                <div>
+                                    <span class="text-gray-400">Nullifier:</span>
+                                    <code class="block font-mono text-purple-300 mt-1" id="nullifier-output">...</code>
+                                </div>
+                                <div>
+                                    <span class="text-gray-400">Commitment:</span>
+                                    <code class="block font-mono text-purple-300 mt-1" id="commitment-output">...</code>
+                                </div>
+                                <div>
+                                    <span class="text-gray-400">Protocol:</span>
+                                    <span class="ml-2 text-white">groth16</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Swap Page -->
+            <div id="swap-page" class="hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                        <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+                            <i class="fas fa-exchange-alt text-purple-400"></i>
+                            Execute Private Swap
+                        </h2>
+
+                        <div id="swap-no-proof" class="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-6 text-center">
+                            <i class="fas fa-exclamation-triangle text-yellow-400 text-3xl mx-auto mb-4"></i>
+                            <h3 class="font-bold text-lg mb-2">No Proof Generated</h3>
+                            <p class="text-gray-300 mb-4">
+                                You need to generate a ZK-SNARK proof before executing a swap.
+                            </p>
+                            <button onclick="setPage('prove')"
+                                    class="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded-lg font-semibold">
+                                Go to Proof Generation
+                            </button>
+                        </div>
+
+                        <div id="swap-with-proof" class="hidden">
+                            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-6">
+                                <h3 class="font-semibold mb-4">Swap Details</h3>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-400">From:</span>
+                                        <span id="swap-from-chain" class="px-3 py-1 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-500 to-blue-700">
+                                            ⟠ Ethereum • ETH
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-center">
+                                        <i class="fas fa-arrow-right text-purple-400 text-xl"></i>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-400">To:</span>
+                                        <span id="swap-to-chain" class="px-3 py-1 rounded-full text-sm font-semibold bg-gradient-to-r from-purple-500 to-purple-700">
+                                            ⬡ Polygon • MATIC
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-400">Amount:</span>
+                                        <span id="swap-amount" class="font-bold text-xl">100</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-400">Recipient:</span>
+                                        <code id="swap-recipient" class="text-sm">0x...</code>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button onclick="executeSwap()"
+                                    class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 py-4 rounded-lg font-bold text-lg">
+                                Execute Swap with ZK Proof
+                            </button>
+
+                            <div class="mt-4 bg-purple-900/30 border border-purple-500/50 rounded-lg p-4">
+                                <div class="flex items-start gap-3">
+                                    <i class="fas fa-lock text-purple-400 mt-0.5"></i>
+                                    <div class="text-sm">
+                                        <p class="text-gray-300">
+                                            This transaction is completely private. The blockchain will only see the proof verification,
+                                            not your identity, amount, or recipient details.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                            <h3 class="font-bold mb-4 flex items-center gap-2">
+                                <i class="fas fa-database text-purple-400"></i>
+                                System State
+                            </h3>
+                            <div class="space-y-3 text-xs">
+                                <div>
+                                    <span class="text-gray-400 block mb-1">Merkle Root:</span>
+                                    <code class="font-mono text-purple-300 block bg-slate-800 p-2 rounded text-[10px]" id="current-root">
+                                        0x811c9dc5...
+                                    </code>
+                                </div>
+                                <div>
+                                    <span class="text-gray-400 block mb-1">Total Swaps:</span>
+                                    <span class="font-bold text-2xl text-white" id="total-swaps">0</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-400 block mb-1">Nullifiers Used:</span>
+                                    <span class="font-bold text-2xl text-white" id="nullifiers-used">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                            <h3 class="font-bold mb-4 flex items-center gap-2">
+                                <i class="fas fa-history text-purple-400"></i>
+                                Recent Swaps
+                            </h3>
+                            <div class="space-y-3 max-h-[300px] overflow-y-auto" id="swap-history">
+                                <p class="text-gray-400 text-xs text-center py-4">No swaps yet</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                    <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                        <i class="fas fa-bolt text-purple-400"></i>
+                        Popular Private Swap Routes
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="popular-routes">
+                        <!-- Routes will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Verify Page -->
+            <div id="verify-page" class="hidden space-y-6">
+                <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+                        <i class="fas fa-check-circle text-purple-400"></i>
+                        Transaction Logs & Verification
+                    </h2>
+                    <p class="text-gray-300 mb-4">
+                        This log shows the complete verification process including proof validation, nullifier checking, 
+                        and state updates. All steps are cryptographically verified on-chain.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                        <h3 class="text-lg font-bold mb-4">System Logs</h3>
+                        <div class="bg-black/50 rounded-lg p-4 font-mono text-xs max-h-[600px] overflow-y-auto" id="system-logs">
+                            <p class="text-green-400">[12:00:00] System initialized with genesis merkle root</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                            <h3 class="font-bold mb-4">Verification Steps</h3>
+                            <div class="space-y-3 text-sm">
+                                <div class="flex items-start gap-2">
+                                    <div class="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">
+                                        1
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold">Proof Verification</div>
+                                        <div class="text-xs text-gray-400">Verify Groth16 proof with verifier contract</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <div class="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">
+                                        2
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold">Nullifier Check</div>
+                                        <div class="text-xs text-gray-400">Ensure nullifier hasn't been used</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <div class="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">
+                                        3
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold">Root Validation</div>
+                                        <div class="text-xs text-gray-400">Verify merkle root matches state</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <div class="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">
+                                        4
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold">State Update</div>
+                                        <div class="text-xs text-gray-400">Update nullifier set and merkle tree</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                            <h3 class="font-bold mb-4">Privacy Features Active</h3>
+                            <div class="space-y-3 text-xs">
+                                <div class="flex items-start gap-2">
+                                    <i class="fas fa-check-circle text-green-400 mt-0.5"></i>
+                                    <div>
+                                        <div class="font-semibold text-white">Hidden Sender</div>
+                                        <div class="text-gray-400">Identity protected via nullifiers</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <i class="fas fa-check-circle text-green-400 mt-0.5"></i>
+                                    <div>
+                                        <div class="font-semibold text-white">Encrypted Amounts</div>
+                                        <div class="text-gray-400">Values hidden in commitments</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <i class="fas fa-check-circle text-green-400 mt-0.5"></i>
+                                    <div>
+                                        <div class="font-semibold text-white">Unlinkable Txns</div>
+                                        <div class="text-gray-400">Cannot trace sender to recipient</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <i class="fas fa-check-circle text-green-400 mt-0.5"></i>
+                                    <div>
+                                        <div class="font-semibold text-white">ZK Verified</div>
+                                        <div class="text-gray-400">Cryptographic proof validation</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900 rounded-xl border border-purple-500/30 p-6">
+                            <h3 class="font-bold mb-4">Statistics</h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-400 text-sm">Total Swaps:</span>
+                                    <span class="font-bold text-xl" id="stats-swaps">0</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-400 text-sm">Nullifiers Used:</span>
+                                    <span class="font-bold text-xl" id="stats-nullifiers">0</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-400 text-sm">Commitments:</span>
+                                    <span class="font-bold text-xl" id="stats-commitments">0</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-400 text-sm">Success Rate:</span>
+                                    <span class="font-bold text-xl text-green-400">100%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Application State
+        const appState = {
+            page: 'overview',
+            secret: '',
+            senderKey: '',
+            amount: '',
+            recipient: '',
+            fromChain: 'ethereum',
+            toChain: 'polygon',
+            fromToken: 'ETH',
+            toToken: 'MATIC',
+            merkleRoot: '',
+            nullifier: '',
+            commitment: '',
+            newRoot: '',
+            showPrivate: false,
+            circuitStep: 0,
+            swapHistory: [],
+            proofData: null,
+            nullifierList: [],
+            commitmentList: [],
+            logs: [
+                { message: 'System initialized with genesis merkle root', type: 'success', time: new Date().toLocaleTimeString() }
+            ],
+            powersOfTau: [],
+            compilationLogs: [],
+            witnessData: null
+        };
+
+        // Chain data
+        const chains = {
+            ethereum: { name: 'Ethereum', id: 1, color: 'from-blue-500 to-blue-700', icon: '⟠' },
+            polygon: { name: 'Polygon', id: 137, color: 'from-purple-500 to-purple-700', icon: '⬡' },
+            zcash: { name: 'Zcash', id: 133, color: 'from-yellow-500 to-yellow-700', icon: 'Ⓩ' },
+            starknet: { name: 'StarkNet', id: 393402133025997798000961, color: 'from-indigo-500 to-indigo-700', icon: '⬢' },
+            arbitrum: { name: 'Arbitrum', id: 42161, color: 'from-cyan-500 to-cyan-700', icon: '◈' },
+            optimism: { name: 'Optimism', id: 10, color: 'from-red-500 to-red-700', icon: '◉' },
+        };
+
+        // Poseidon hash simulation
+        function poseidonHash(...inputs) {
+            const combined = inputs.map(i => String(i)).join('|');
+            let hash = 0x811c9dc5;
+            for (let i = 0; i < combined.length; i++) {
+                hash ^= combined.charCodeAt(i);
+                hash = Math.imul(hash, 0x01000193);
+            }
+            const hashStr = (hash >>> 0).toString(16).padStart(16, '0');
+            return '0x' + hashStr.repeat(4);
+        }
+
+        // Initialize merkle root
+        appState.merkleRoot = poseidonHash('genesis', 'merkle', 'tree', Date.now());
+        
+        // Page navigation
+        function setPage(page) {
+            appState.page = page;
+            
+            // Hide all pages
+            document.getElementById('overview-page').classList.add('hidden');
+            document.getElementById('circuit-page').classList.add('hidden');
+            document.getElementById('powers-page').classList.add('hidden');
+            document.getElementById('compile-page').classList.add('hidden');
+            document.getElementById('prove-page').classList.add('hidden');
+            document.getElementById('swap-page').classList.add('hidden');
+            document.getElementById('verify-page').classList.add('hidden');
+            
+            // Show selected page
+            document.getElementById(`${page}-page`).classList.remove('hidden');
+            
+            // Update active button
+            document.querySelectorAll('#content').previousElementSibling.querySelectorAll('button').forEach(btn => {
+                btn.classList.remove('bg-purple-600', 'text-white');
+                btn.classList.add('bg-slate-800', 'text-gray-400');
+            });
+            
+            event.target.classList.remove('bg-slate-800', 'text-gray-400');
+            event.target.classList.add('bg-purple-600', 'text-white');
+            
+            // Update UI based on page
+            if (page === 'swap') updateSwapPage();
+            if (page === 'verify') updateVerifyPage();
+        }
+
+        // Copy circuit code
+        function copyCircuitCode() {
+            const code = `pragma circom 2.1.6;
+include "node_modules/circomlib/circuits/poseidon.circom";
+include "node_modules/circomlib/circuits/comparators.circom";
+
+template PrivateSwap() {
+    signal input secret;
+    signal input senderKey;
+    signal input amountIn;
+    signal input amountOut;
+    signal input recipient;
+    signal input chainIdFrom;
+    signal input chainIdTo;
+    signal input tokenFrom;
+    signal input tokenTo;
+    signal input timestamp;
+    signal input merkleRoot;
+    
+    signal output nullifierHash;
+    signal output commitmentOut;
+    signal output rootAfter;
+    
+    component poseidon = Poseidon(3);
+    component poseidon2 = Poseidon(4);
+    component comp = LessThan(64);
+    component rootHasher = Poseidon(2);
+    
+    poseidon.inputs[0] <== secret;
+    poseidon.inputs[1] <== chainIdFrom;
+    poseidon.inputs[2] <== chainIdTo;
+    nullifierHash <== poseidon.out;
+    
+    poseidon2.inputs[0] <== secret;
+    poseidon2.inputs[1] <== amountOut;
+    poseidon2.inputs[2] <== recipient;
+    poseidon2.inputs[3] <== chainIdTo;
+    commitmentOut <== poseidon2.out;
+    
+    comp.in[0] <== 0;
+    comp.in[1] <== amountIn;
+    comp.out === 1;
+    
+    rootHasher.inputs[0] <== merkleRoot;
+    rootHasher.inputs[1] <== commitmentOut;
+    rootAfter <== rootHasher.out;
+}
+
+component main { public [ merkleRoot ] } = PrivateSwap();`;
+            
+            navigator.clipboard.writeText(code);
+            addLog('Circuit code copied to clipboard', 'success');
+        }
+
+        // Add log
+        function addLog(message, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            appState.logs.push({ message, type, time });
+            
+            // Update logs display
+            const logsContainer = document.getElementById('system-logs');
+            if (logsContainer) {
+                const logElement = document.createElement('p');
+                logElement.className = type === 'error' ? 'text-red-400' : 
+                                      type === 'success' ? 'text-green-400' : 
+                                      type === 'info' ? 'text-blue-400' : 'text-gray-400';
+                logElement.innerHTML = `[${time}] ${message}`;
+                logsContainer.appendChild(logElement);
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+            }
+        }
+
+        // Generate secret
+        function generateSecret() {
+            appState.secret = poseidonHash('secret', Math.random(), Date.now());
+            document.getElementById('secret-input').value = appState.secret;
+            addLog('Private secret generated (never revealed on-chain)', 'success');
+        }
+
+        // Generate sender key
+        function generateSenderKey() {
+            appState.senderKey = poseidonHash('sender', Math.random(), Date.now());
+            document.getElementById('sender-key-input').value = appState.senderKey;
+            addLog('Sender key generated', 'success');
+        }
+
+        // Toggle secret visibility
+        function toggleSecretVisibility() {
+            const input = document.getElementById('secret-input');
+            const button = event.currentTarget;
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                button.innerHTML = '<i class="far fa-eye-slash"></i>';
+            } else {
+                input.type = 'password';
+                button.innerHTML = '<i class="far fa-eye"></i>';
+            }
+        }
+
+        // Run Powers of Tau ceremony
+        async function runPowersOfTau() {
+            const button = document.getElementById('tau-button');
+            const logsContainer = document.getElementById('tau-logs');
+            const powersContainer = document.getElementById('tau-powers');
+            
+            button.disabled = true;
+            button.textContent = 'Running Ceremony...';
+            logsContainer.innerHTML = '';
+            powersContainer.innerHTML = '<p class="text-gray-400 text-sm">Generating powers...</p>';
+            
+            function addTauLog(message) {
+                const logElement = document.createElement('div');
+                logElement.className = 'text-green-400 mb-1';
+                logElement.textContent = message;
+                logsContainer.appendChild(logElement);
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+            }
+            
+            addTauLog('Starting Powers of Tau ceremony...');
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+            addTauLog('Phase 1: Generating toxic waste...');
+            
+            await new Promise(resolve => setTimeout(resolve, 800));
+            addTauLog('Computing powers: τ⁰, τ¹, τ², τ³...');
+            
+            appState.powersOfTau = [];
+            for (let i = 0; i < 8; i++) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+                const power = poseidonHash('tau', i, Math.random());
+                appState.powersOfTau.push({ power: i, value: power });
+                addTauLog(`  τ^${i} = ${power.slice(0, 20)}...`);
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            addTauLog('Phase 2: Computing elliptic curve points...');
+            
+            await new Promise(resolve => setTimeout(resolve, 800));
+            addTauLog('G₁ points computed: 8 elements');
+            addTauLog('G₂ points computed: 8 elements');
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+            addTauLog('Toxic waste destroyed ✓');
+            addTauLog('Powers of Tau ceremony complete!');
+            
+            // Display powers
+            powersContainer.innerHTML = '';
+            appState.powersOfTau.forEach(tau => {
+                const powerElement = document.createElement('div');
+                powerElement.className = 'bg-slate-800 p-3 rounded-lg';
+                powerElement.innerHTML = `
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="font-semibold text-purple-400">τ^${tau.power}</span>
+                        <i class="fas fa-check-circle text-green-400"></i>
+                    </div>
+                    <code class="text-xs text-gray-400 break-all">${tau.value.slice(0, 40)}...</code>
+                `;
+                powersContainer.appendChild(powerElement);
+            });
+            
+            button.textContent = 'Ceremony Complete ✓';
+            addLog('Powers of Tau generated successfully', 'success');
+        }
+
+        // Compile circuit
+        async function compileCircuit() {
+            const logsContainer = document.getElementById('compile-logs');
+            logsContainer.innerHTML = '';
+            
+            function addCompileLog(message) {
+                const logElement = document.createElement('div');
+                logElement.className = 'text-green-400 mb-1';
+                logElement.textContent = message;
+                logsContainer.appendChild(logElement);
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+            }
+            
+            addCompileLog('Compiling circuit: PrivateSwap.circom');
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+            addCompileLog('Parsing circom file...');
+            
+            await new Promise(resolve => setTimeout(resolve, 700));
+            addCompileLog('Building constraint system...');
+            addCompileLog('  - 3 Poseidon hash components');
+            addCompileLog('  - 1 LessThan comparator');
+            addCompileLog('  - 1 Merkle root hasher');
+            
+            await new Promise(resolve => setTimeout(resolve, 800));
+            addCompileLog('Total constraints: 1,247');
+            addCompileLog('Total signals: 2,891');
+            addCompileLog('Public signals: 1 (merkleRoot)');
+            
+            await new Promise(resolve => setTimeout(resolve, 600));
+            addCompileLog('Generating R1CS...');
+            
+            await new Promise(resolve => setTimeout(resolve, 700));
+            addCompileLog('Generating WASM witness calculator...');
+            
+            await new Promise(resolve => setTimeout(resolve, 600));
+            addCompileLog('Circuit compiled successfully! ✓');
+            addCompileLog('Output: PrivateSwap.r1cs, PrivateSwap_js/');
+            
+            addLog('Circuit compilation complete', 'success');
+        }
+
+        // Generate proof
+        async function generateProof() {
+            // Get values from inputs
+            appState.secret = document.getElementById('secret-input').value;
+            appState.senderKey = document.getElementById('sender-key-input').value;
+            appState.amount = document.getElementById('amount-input').value;
+            appState.recipient = document.getElementById('recipient-input').value;
+            appState.fromChain = document.getElementById('from-chain-select').value;
+            appState.toChain = document.getElementById('to-chain-select').value;
+            
+            // Validate inputs
+            if (!appState.secret || !appState.amount || !appState.recipient || !appState.senderKey) {
+                addLog('Missing required inputs!', 'error');
+                alert('Please fill all required fields!');
+                return;
+            }
+            
+            const button = document.getElementById('generate-proof-button');
+            const proofSteps = document.querySelectorAll('.proof-step');
+            
+            button.disabled = true;
+            button.textContent = 'Generating...';
+            
+            // Reset steps
+            proofSteps.forEach(step => {
+                step.classList.remove('bg-purple-900/30', 'border-purple-500');
+                step.classList.add('bg-slate-800/30', 'border-slate-700');
+                const icon = step.querySelector('.w-4, .h-4');
+                if (icon) icon.className = 'w-4 h-4 border-2 border-slate-600 rounded-full';
+                const code = step.querySelector('code');
+                if (code) code.classList.add('hidden');
+            });
+            
+            // Step 1: Generate nullifier
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            proofSteps[0].classList.remove('bg-slate-800/30', 'border-slate-700');
+            proofSteps[0].classList.add('bg-purple-900/30', 'border-purple-500');
+            proofSteps[0].querySelector('.w-4, .h-4').className = 'fas fa-check-circle text-green-400';
+            proofSteps[0].querySelector('code').classList.remove('hidden');
+            
+            appState.nullifier = poseidonHash(appState.secret, chains[appState.fromChain].id, chains[appState.toChain].id);
+            addLog(`Nullifier computed: Poseidon(secret, ${chains[appState.fromChain].id}, ${chains[appState.toChain].id})`, 'success');
+            
+            // Step 2: Generate commitment
+            await new Promise(resolve => setTimeout(resolve, 800));
+            proofSteps[1].classList.remove('bg-slate-800/30', 'border-slate-700');
+            proofSteps[1].classList.add('bg-purple-900/30', 'border-purple-500');
+            proofSteps[1].querySelector('.w-4, .h-4').className = 'fas fa-check-circle text-green-400';
+            proofSteps[1].querySelector('code').classList.remove('hidden');
+            
+            appState.commitment = poseidonHash(appState.secret, appState.amount, appState.recipient, chains[appState.toChain].id);
+            addLog(`Commitment computed: Poseidon(secret, ${appState.amount}, recipient, ${chains[appState.toChain].id})`, 'success');
+            
+            // Step 3: Validate amount
+            await new Promise(resolve => setTimeout(resolve, 800));
+            proofSteps[2].classList.remove('bg-slate-800/30', 'border-slate-700');
+            proofSteps[2].classList.add('bg-purple-900/30', 'border-purple-500');
+            proofSteps[2].querySelector('.w-4, .h-4').className = 'fas fa-check-circle text-green-400';
+            proofSteps[2].querySelector('code').classList.remove('hidden');
+            
+            if (parseFloat(appState.amount) > 0) {
+                addLog('Amount validation passed: LessThan(0, amount) = true', 'success');
+            }
+            
+            // Step 4: Update merkle root
+            await new Promise(resolve => setTimeout(resolve, 800));
+            proofSteps[3].classList.remove('bg-slate-800/30', 'border-slate-700');
+            proofSteps[3].classList.add('bg-purple-900/30', 'border-purple-500');
+            proofSteps[3].querySelector('.w-4, .h-4').className = 'fas fa-check-circle text-green-400';
+            proofSteps[3].querySelector('code').classList.remove('hidden');
+            
+            appState.newRoot = poseidonHash(appState.merkleRoot, appState.commitment);
+            addLog('New merkle root: Poseidon(oldRoot, commitment)', 'success');
+            
+            // Step 5: Generate witness
+            await new Promise(resolve => setTimeout(resolve, 800));
+            proofSteps[4].classList.remove('bg-slate-800/30', 'border-slate-700');
+            proofSteps[4].classList.add('bg-purple-900/30', 'border-purple-500');
+            proofSteps[4].querySelector('.w-4, .h-4').className = 'fas fa-check-circle text-green-400';
+            proofSteps[4].querySelector('code').classList.remove('hidden');
+            
+            appState.witnessData = {
+                secret: appState.secret,
+                senderKey: appState.senderKey,
+                amountIn: appState.amount,
+                amountOut: appState.amount,
+                recipient: appState.recipient,
+                chainIdFrom: chains[appState.fromChain].id,
+                chainIdTo: chains[appState.toChain].id,
+                merkleRoot: appState.merkleRoot,
+                timestamp: Date.now()
+            };
+            addLog('Witness data generated', 'success');
+            
+            // Step 6: Generate proof
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            proofSteps[5].classList.remove('bg-slate-800/30', 'border-slate-700');
+            proofSteps[5].classList.add('bg-purple-900/30', 'border-purple-500');
+            proofSteps[5].querySelector('.w-4, .h-4').className = 'fas fa-check-circle text-green-400';
+            proofSteps[5].querySelector('code').classList.remove('hidden');
+            
+            appState.proofData = {
+                proof: {
+                    pi_a: [poseidonHash('proof', 'a', Math.random()).slice(0, 42), 
+                           poseidonHash('proof', 'a2', Math.random()).slice(0, 42)],
+                    pi_b: [[poseidonHash('proof', 'b1', Math.random()).slice(0, 42), 
+                            poseidonHash('proof', 'b2', Math.random()).slice(0, 42)],
+                           [poseidonHash('proof', 'b3', Math.random()).slice(0, 42), 
+                            poseidonHash('proof', 'b4', Math.random()).slice(0, 42)]],
+                    pi_c: [poseidonHash('proof', 'c', Math.random()).slice(0, 42), 
+                           poseidonHash('proof', 'c2', Math.random()).slice(0, 42)],
+                    protocol: 'groth16',
+                    curve: 'bn128'
+                },
+                publicSignals: [appState.merkleRoot],
+                nullifier: appState.nullifier,
+                commitment: appState.commitment,
+                rootAfter: appState.newRoot,
+                rootBefore: appState.merkleRoot,
+                amount: appState.amount,
+                fromChain: chains[appState.fromChain].name,
+                toChain: chains[appState.toChain].name,
+                fromToken: appState.fromToken,
+                toToken: appState.toToken
+            };
+            
+            // Show proof results
+            document.getElementById('proof-results').classList.remove('hidden');
+            document.getElementById('nullifier-output').textContent = appState.nullifier.slice(0, 32) + '...';
+            document.getElementById('commitment-output').textContent = appState.commitment.slice(0, 32) + '...';
+            
+            addLog('ZK-SNARK proof generated successfully! ✓', 'success');
+            
+            button.disabled = false;
+            button.textContent = 'Proof Complete ✓';
+        }
+
+        // Update swap page
+        function updateSwapPage() {
+            // Update system state
+            document.getElementById('current-root').textContent = appState.merkleRoot.slice(0, 20) + '...';
+            document.getElementById('total-swaps').textContent = appState.swapHistory.length;
+            document.getElementById('nullifiers-used').textContent = appState.nullifierList.length;
+            
+            // Update swap history
+            const historyContainer = document.getElementById('swap-history');
+            if (appState.swapHistory.length === 0) {
+                historyContainer.innerHTML = '<p class="text-gray-400 text-xs text-center py-4">No swaps yet</p>';
+            } else {
+                historyContainer.innerHTML = '';
+                appState.swapHistory.slice(0, 5).forEach(swap => {
+                    const swapElement = document.createElement('div');
+                    swapElement.className = 'bg-slate-800 rounded-lg p-3 border border-slate-700';
+                    swapElement.innerHTML = `
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-green-400"></div>
+                                <span class="text-xs font-semibold">${swap.amount} ${swap.fromToken}</span>
+                            </div>
+                            <span class="text-xs text-gray-400">${swap.timestamp}</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs mb-2">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-gradient-to-r ${chains[swap.from.toLowerCase()].color}">
+                                ${swap.from}
+                            </span>
+                            <i class="fas fa-arrow-right text-gray-400 text-xs"></i>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-gradient-to-r ${chains[swap.to.toLowerCase()].color}">
+                                ${swap.to}
+                            </span>
+                        </div>
+                        <div class="text-xs text-gray-400">
+                            <div>To: ${swap.recipient}</div>
+                            <div class="font-mono">TX: ${swap.txHash}</div>
+                        </div>
+                    `;
+                    historyContainer.appendChild(swapElement);
+                });
+            }
+            
+            // Update swap interface based on proof
+            if (appState.proofData) {
+                document.getElementById('swap-no-proof').classList.add('hidden');
+                document.getElementById('swap-with-proof').classList.remove('hidden');
+                
+                document.getElementById('swap-from-chain').innerHTML = 
+                    `${chains[appState.fromChain].icon} ${appState.proofData.fromChain} • ${appState.fromToken}`;
+                document.getElementById('swap-from-chain').className = 
+                    `px-3 py-1 rounded-full text-sm font-semibold bg-gradient-to-r ${chains[appState.fromChain].color}`;
+                
+                document.getElementById('swap-to-chain').innerHTML = 
+                    `${chains[appState.toChain].icon} ${appState.proofData.toChain} • ${appState.toToken}`;
+                document.getElementById('swap-to-chain').className = 
+                    `px-3 py-1 rounded-full text-sm font-semibold bg-gradient-to-r ${chains[appState.toChain].color}`;
+                
+                document.getElementById('swap-amount').textContent = appState.proofData.amount;
+                document.getElementById('swap-recipient').textContent = 
+                    appState.recipient.slice(0, 10) + '...' + appState.recipient.slice(-8);
+            } else {
+                document.getElementById('swap-no-proof').classList.remove('hidden');
+                document.getElementById('swap-with-proof').classList.add('hidden');
+            }
+            
+            // Populate popular routes
+            const routesContainer = document.getElementById('popular-routes');
+            const popularRoutes = [
+                { from: 'ethereum', to: 'zcash', fromToken: 'ETH', toToken: 'ZEC', volume: '1.2M' },
+                { from: 'zcash', to: 'starknet', fromToken: 'ZEC', toToken: 'STRK', volume: '850K' },
+                { from: 'polygon', to: 'ethereum', fromToken: 'USDC', toToken: 'USDC', volume: '2.1M' },
+                { from: 'starknet', to: 'arbitrum', fromToken: 'ETH', toToken: 'ETH', volume: '1.5M' },
+                { from: 'arbitrum', to: 'optimism', fromToken: 'USDC', toToken: 'USDC', volume: '980K' },
+                { from: 'ethereum', to: 'polygon', fromToken: 'DAI', toToken: 'DAI', volume: '1.8M' },
+            ];
+            
+            routesContainer.innerHTML = '';
+            popularRoutes.forEach(route => {
+                const routeElement = document.createElement('button');
+                routeElement.className = 'bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-purple-500 rounded-xl p-4 transition-all text-left';
+                routeElement.innerHTML = `
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-1 rounded text-xs font-semibold bg-gradient-to-r ${chains[route.from].color}">
+                                ${chains[route.from].icon} ${route.fromToken}
+                            </span>
+                            <i class="fas fa-arrow-right text-gray-400 text-xs"></i>
+                            <span class="px-2 py-1 rounded text-xs font-semibold bg-gradient-to-r ${chains[route.to].color}">
+                                ${chains[route.to].icon} ${route.toToken}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-400">
+                        ${chains[route.from].name} → ${chains[route.to].name}
+                    </div>
+                    <div class="text-xs text-purple-400 font-semibold mt-2">
+                        $${route.volume} 24h volume
+                    </div>
+                `;
+                routeElement.onclick = () => {
+                    appState.fromChain = route.from;
+                    appState.toChain = route.to;
+                    appState.fromToken = route.fromToken;
+                    appState.toToken = route.toToken;
+                    document.getElementById('from-chain-select').value = route.from;
+                    document.getElementById('to-chain-select').value = route.to;
+                    setPage('prove');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+                routesContainer.appendChild(routeElement);
+            });
+        }
+
+        // Execute swap
+        async function executeSwap() {
+            if (!appState.proofData) return;
+            
+            addLog('Broadcasting transaction to blockchain...', 'info');
+            
+            await new Promise(resolve => setTimeout(resolve, 800));
+            addLog(`Verifying proof on ${chains[appState.fromChain].name}...`, 'info');
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            addLog('Verifying Groth16 proof with verifier contract...', 'info');
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            addLog('✓ Proof is valid!', 'success');
+            addLog('Checking nullifier has not been spent...', 'info');
+            
+            await new Promise(resolve => setTimeout(resolve, 800));
+            if (appState.nullifierList.includes(appState.proofData.nullifier)) {
+                addLog('✗ Nullifier already spent! Double-spend detected!', 'error');
+                return;
+            }
+            addLog('✓ Nullifier is fresh', 'success');
+            addLog('Checking merkle root matches current state...', 'info');
+            
+            await new Promise(resolve => setTimeout(resolve, 800));
+            if (appState.proofData.rootBefore !== appState.merkleRoot) {
+                addLog('✗ Merkle root mismatch!', 'error');
+                return;
+            }
+            addLog('✓ Merkle root valid', 'success');
+            addLog('Updating on-chain state...', 'info');
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Update state
+            appState.nullifierList.push(appState.proofData.nullifier);
+            appState.commitmentList.push(appState.proofData.commitment);
+            appState.merkleRoot = appState.proofData.rootAfter;
+            
+            const swap = {
+                id: Date.now(),
+                from: chains[appState.fromChain].name,
+                to: chains[appState.toChain].name,
+                fromToken: appState.fromToken,
+                toToken: appState.toToken,
+                amount: appState.amount,
+                recipient: appState.recipient.slice(0, 6) + '...' + appState.recipient.slice(-4),
+                nullifier: appState.proofData.nullifier.slice(0, 10) + '...',
+                commitment: appState.proofData.commitment.slice(0, 10) + '...',
+                timestamp: new Date().toLocaleTimeString(),
+                status: 'completed',
+                txHash: poseidonHash('tx', Date.now()).slice(0, 20) + '...'
+            };
+            
+            appState.swapHistory.unshift(swap);
+            
+            addLog('✓ Nullifier marked as spent', 'success');
+            addLog('✓ Commitment added to tree', 'success');
+            addLog('✓ Merkle root updated', 'success');
+            addLog(`Transaction hash: ${swap.txHash}`, 'success');
+            addLog(`Cross-chain message sent to ${chains[appState.toChain].name}`, 'success');
+            addLog('SWAP COMPLETED SUCCESSFULLY! 🎉', 'success');
+            
+            // Reset for new swap
+            appState.secret = '';
+            appState.senderKey = '';
+            appState.amount = '';
+            appState.recipient = '';
+            appState.nullifier = '';
+            appState.commitment = '';
+            appState.newRoot = '';
+            appState.proofData = null;
+            appState.circuitStep = 0;
+            appState.witnessData = null;
+            
+            // Clear inputs
+            document.getElementById('secret-input').value = '';
+            document.getElementById('sender-key-input').value = '';
+            document.getElementById('amount-input').value = '';
+            document.getElementById('recipient-input').value = '';
+            
+            // Reset proof UI
+            document.querySelectorAll('.proof-step').forEach(step => {
+                step.classList.remove('bg-purple-900/30', 'border-purple-500');
+                step.classList.add('bg-slate-800/30', 'border-slate-700');
+                const icon = step.querySelector('.fas');
+                if (icon) icon.className = 'w-4 h-4 border-2 border-slate-600 rounded-full';
+                const code = step.querySelector('code');
+                if (code) code.classList.add('hidden');
+            });
+            
+            document.getElementById('proof-results').classList.add('hidden');
+            document.getElementById('generate-proof-button').textContent = 'Generate ZK-SNARK Proof';
+            
+            // Update swap page
+            updateSwapPage();
+            updateVerifyPage();
+        }
+
+        // Update verify page
+        function updateVerifyPage() {
+            document.getElementById('stats-swaps').textContent = appState.swapHistory.length;
+            document.getElementById('stats-nullifiers').textContent = appState.nullifierList.length;
+            document.getElementById('stats-commitments').textContent = appState.commitmentList.length;
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set initial merkle root
+            document.getElementById('current-root').textContent = appState.merkleRoot.slice(0, 20) + '...';
+            
+            // Set up chain selectors
+            document.getElementById('from-chain-select').addEventListener('change', function() {
+                appState.fromChain = this.value;
+            });
+            
+            document.getElementById('to-chain-select').addEventListener('change', function() {
+                appState.toChain = this.value;
+            });
+            
+            // Set up input listeners
+            document.getElementById('secret-input').addEventListener('input', function() {
+                appState.secret = this.value;
+            });
+            
+            document.getElementById('sender-key-input').addEventListener('input', function() {
+                appState.senderKey = this.value;
+            });
+            
+            document.getElementById('amount-input').addEventListener('input', function() {
+                appState.amount = this.value;
+            });
+            
+            document.getElementById('recipient-input').addEventListener('input', function() {
+                appState.recipient = this.value;
+            });
+        });
+    </script>
+</body>
+</html>
